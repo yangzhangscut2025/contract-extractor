@@ -1,0 +1,20 @@
+appId: com.contract-extractor.app
+productName: 合同智能提取工具
+directories:
+  buildResources: resources
+  output: dist
+files:
+  - out/**/*
+  - resources/**/*
+win:
+  target:
+    - nsis
+  icon: resources/icon.ico
+mac:
+  target:
+    - dmg
+  icon: resources/icon.icns
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  language: 2052
