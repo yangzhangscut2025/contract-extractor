@@ -89,5 +89,5 @@ ${convert(req)}
 ${convert(manual)}
 </body></html>`
 
-fs.writeFileSync('合同智能提取工具-V1.5文档.html', html)
-console.log('OK: ' + (fs.statSync('合同智能提取工具-V1.5文档.html').size / 1024).toFixed(0) + 'KB')
+fs.writeFileSync('合同智能提取工具-V1.6文档.html', html)
+console.log('OK: ' + (fs.statSync('合同智能提取工具-V1.6文档.html').size / 1024).toFixed(0) + 'KB')

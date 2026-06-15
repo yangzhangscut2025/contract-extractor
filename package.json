@@ -1,7 +1,7 @@
 {
   "name": "contract-extractor",
-  "version": "1.2.0",
-  "description": "多语言合同智能提取工具 - 批量导入PDF合同，自动提取43个字段，支持人工校对与Excel导出",
+  "version": "1.6.0",
+  "description": "合同智能提取工具 - 批量导入PDF合同，自动提取45个字段，支持人工校对、翻译辅助与Excel导出",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -16,7 +16,6 @@
     "@ant-design/icons": "^5.4.0",
     "antd": "^5.20.0",
     "exceljs": "^4.4.0",
-    "openai": "^4.50.0",
     "pdfjs-dist": "^2.16.105",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
