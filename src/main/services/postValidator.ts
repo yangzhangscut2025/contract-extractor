@@ -62,6 +62,7 @@ export function validateField(fieldName: string, value: string | null): Validati
 
   // Amount fields (salary, allowance)
   if (fieldName === 'annual_gross_salary' || fieldName === 'monthly_gross_salary' ||
+      fieldName === 'hourly_gross_salary' ||
       fieldName === 'transportation_allowance' || fieldName === 'meal_allowance') {
     if (strValue === 'null' || strValue === 'nil') {
       return { status: 'ok', message: null }

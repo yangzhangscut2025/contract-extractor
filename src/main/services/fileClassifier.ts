@@ -1,5 +1,3 @@
-import { logger } from '../utils/logger'
-
 type ContractType = 'EmploymentContract' | 'SalaryAdjustment' | 'Other'
 
 // Keywords for each document type (case-insensitive matching)

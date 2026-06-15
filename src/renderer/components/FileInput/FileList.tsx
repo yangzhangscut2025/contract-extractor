@@ -1,5 +1,5 @@
 import { Table, Button, Tag, Space, Popconfirm, message } from 'antd'
-import { DeleteOutlined, EyeOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EyeOutlined, FilePdfOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useAppStore } from '../../store/appStore'
 import type { FileRecord } from '../../types/contracts'
@@ -25,6 +25,14 @@ export function FileList(): JSX.Element {
   const handleReview = async (record: FileRecord): Promise<void> => {
     await loadFileForReview(record.id)
     setActiveView('review')
+  }
+
+  const handleOpenOriginal = async (record: FileRecord): Promise<void> => {
+    try {
+      await window.electronAPI.fileOpen(record.id)
+    } catch (err) {
+      message.error('打开文件失败: ' + String(err))
+    }
   }
 
   const columns: ColumnsType<FileRecord> = [
@@ -86,6 +94,14 @@ export function FileList(): JSX.Element {
       width: 150,
       render: (_: unknown, record: FileRecord) => (
         <Space>
+          <Button
+            type="link"
+            size="small"
+            icon={<FilePdfOutlined />}
+            onClick={() => handleOpenOriginal(record)}
+          >
+            原件
+          </Button>
           <Button
             type="link"
             size="small"

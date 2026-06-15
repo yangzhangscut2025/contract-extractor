@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron'
 import { getConfig, setConfigKey, AppConfig } from '../config/store'
+import { testOcrConnection } from '../services/ocrService'
+import { callLlm } from '../services/llmService'
 
 export function registerConfigHandlers(): void {
   ipcMain.handle('config:get', async () => {
@@ -17,12 +19,7 @@ export function registerConfigHandlers(): void {
   })
 
   ipcMain.handle('config:test-ocr', async () => {
-    const config = getConfig()
-    if (!config.ocrAccessKeyId || !config.ocrAccessKeySecret) {
-      return { success: false, message: '请先配置阿里云 OCR AccessKey 和 Secret' }
-    }
-    // Will be implemented when OCR service is ready
-    return { success: false, message: 'OCR 测试功能将在 Phase 2 中实现' }
+    return await testOcrConnection()
   })
 
   ipcMain.handle('config:test-llm', async () => {
@@ -30,7 +27,11 @@ export function registerConfigHandlers(): void {
     if (!config.llmApiKey) {
       return { success: false, message: '请先配置大模型 API Key' }
     }
-    // Will be implemented when LLM service is ready
-    return { success: false, message: '大模型测试功能将在 Phase 3 中实现' }
+    try {
+      await callLlm('请用JSON格式回复: {"status": "ok"}')
+      return { success: true, message: '大模型连接测试成功' }
+    } catch (err: unknown) {
+      return { success: false, message: '大模型连接测试失败: ' + String(err) }
+    }
   })
 }

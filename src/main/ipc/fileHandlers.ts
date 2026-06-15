@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import { computeFileMd5 } from '../utils/crypto'
 import { parseFilename } from '../services/fileParser'
 import * as fs from 'fs'
@@ -87,5 +87,39 @@ export function registerFileHandlers(): void {
   ipcMain.handle('file:get-text', async (_event, { id }: { id: number }) => {
     const record = await findFileRecordById(id)
     return record?.original_text || ''
+  })
+
+  // Open original PDF file with system default viewer
+  ipcMain.handle('file:open', async (_event, { id }: { id: number }) => {
+    const record = await findFileRecordById(id)
+    if (!record) {
+      throw new Error('文件记录不存在')
+    }
+    const result = await shell.openPath(record.file_path)
+    if (result) {
+      throw new Error(`无法打开文件: ${result}`)
+    }
+  })
+
+  // Get file path for PDF viewing
+  ipcMain.handle('file:get-path', async (_event, { id }: { id: number }) => {
+    const record = await findFileRecordById(id)
+    if (!record) {
+      throw new Error('文件记录不存在')
+    }
+    return record.file_path
+  })
+
+  // Read PDF file as base64 for in-app viewing
+  ipcMain.handle('file:read-pdf', async (_event, { id }: { id: number }) => {
+    const record = await findFileRecordById(id)
+    if (!record) {
+      throw new Error('文件记录不存在')
+    }
+    if (!fs.existsSync(record.file_path)) {
+      throw new Error('PDF 文件不存在')
+    }
+    const buffer = fs.readFileSync(record.file_path)
+    return buffer.toString('base64')
   })
 }

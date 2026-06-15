@@ -1,5 +1,4 @@
 import * as ExcelJS from 'exceljs'
-import * as fs from 'fs'
 import { findFileRecordById } from '../database/repositories/fileRecordRepo'
 import { findResultsByFileId } from '../database/repositories/extractionResultRepo'
 import { logger } from '../utils/logger'
@@ -28,6 +27,8 @@ const COLUMNS = [
   { header: '税前年薪币种', key: 'annual_gross_currency' },
   { header: '税前月薪', key: 'monthly_gross_salary' },
   { header: '税前月薪币种', key: 'monthly_gross_currency' },
+  { header: '税前时薪', key: 'hourly_gross_salary' },
+  { header: '税前时薪币种', key: 'hourly_gross_currency' },
   { header: '交通补贴', key: 'transportation_allowance' },
   { header: '餐补', key: 'meal_allowance' },
   { header: '奖金', key: 'bonus' },

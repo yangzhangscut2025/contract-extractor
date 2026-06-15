@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Layout, Menu, Typography } from 'antd'
+import { Layout, Menu, Typography, Modal, Input, message } from 'antd'
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -30,6 +30,8 @@ export function AppLayout(): JSX.Element {
   const setActiveView = useAppStore((s) => s.setActiveView)
   const loadFiles = useAppStore((s) => s.loadFiles)
   const [collapsed, setCollapsed] = useState(false)
+  const [passwordModal, setPasswordModal] = useState<{ visible: boolean; fileId: number; fileName: string }>({ visible: false, fileId: 0, fileName: '' })
+  const [passwordInput, setPasswordInput] = useState('')
 
   useEffect(() => {
     loadFiles()
@@ -65,15 +67,48 @@ export function AppLayout(): JSX.Element {
       loadFiles()
     })
 
+    const unsubPassword = window.electronAPI.onProcessRequestPassword((data: any) => {
+      setPasswordModal({ visible: true, fileId: data.fileId, fileName: data.fileName })
+      setPasswordInput('')
+    })
+
     return () => {
       unsubProgress()
       unsubComplete()
       unsubError()
       unsubBatch()
+      unsubPassword()
     }
   }, [])
 
   return (
+    <>
+    <Modal
+      title="PDF 已加密"
+      open={passwordModal.visible}
+      onOk={async () => {
+        await window.electronAPI.processProvidePassword(passwordModal.fileId, passwordInput)
+        setPasswordModal({ visible: false, fileId: 0, fileName: '' })
+      }}
+      onCancel={() => {
+        window.electronAPI.processProvidePassword(passwordModal.fileId, '')
+        setPasswordModal({ visible: false, fileId: 0, fileName: '' })
+      }}
+      okText="确定"
+      cancelText="跳过"
+    >
+      <p>文件 <strong>{passwordModal.fileName}</strong> 已加密，请输入密码：</p>
+      <Input.Password
+        value={passwordInput}
+        onChange={(e) => setPasswordInput(e.target.value)}
+        placeholder="输入 PDF 密码"
+        autoFocus
+        onPressEnter={async () => {
+          await window.electronAPI.processProvidePassword(passwordModal.fileId, passwordInput)
+          setPasswordModal({ visible: false, fileId: 0, fileName: '' })
+        }}
+      />
+    </Modal>
     <Layout style={{ height: '100%' }}>
       <Sider
         collapsible
@@ -150,5 +185,6 @@ export function AppLayout(): JSX.Element {
         </Content>
       </Layout>
     </Layout>
+    </>
   )
 }

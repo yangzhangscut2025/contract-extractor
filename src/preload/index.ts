@@ -9,6 +9,9 @@ const electronAPI = {
   fileList: (): Promise<unknown[]> => ipcRenderer.invoke('file:list'),
   fileRemove: (id: number): Promise<void> => ipcRenderer.invoke('file:remove', { id }),
   fileGetText: (id: number): Promise<string> => ipcRenderer.invoke('file:get-text', { id }),
+  fileOpen: (id: number): Promise<void> => ipcRenderer.invoke('file:open', { id }),
+  fileGetPath: (id: number): Promise<string> => ipcRenderer.invoke('file:get-path', { id }),
+  fileReadPdf: (id: number): Promise<string> => ipcRenderer.invoke('file:read-pdf', { id }),
 
   // Processing
   processStart: (ids: number[]): Promise<void> => ipcRenderer.invoke('process:start', { ids }),
@@ -58,7 +61,16 @@ const electronAPI = {
     const handler = (): void => callback()
     ipcRenderer.on('process:batch-complete', handler)
     return () => ipcRenderer.removeListener('process:batch-complete', handler)
-  }
+  },
+  onProcessRequestPassword: (callback: (data: { fileId: number; fileName: string }) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { fileId: number; fileName: string }): void => callback(data)
+    ipcRenderer.on('process:request-password', handler)
+    return () => ipcRenderer.removeListener('process:request-password', handler)
+  },
+  processProvidePassword: (fileId: number, password: string): Promise<void> =>
+    ipcRenderer.invoke('process:provide-password', { fileId, password }),
+  processReprocess: (id: number): Promise<void> =>
+    ipcRenderer.invoke('process:reprocess', { id })
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { processFiles, abortProcessing } from '../services/pipeline'
+import { processFiles, abortProcessing, processState, resolvePassword } from '../services/pipeline'
 
 export function registerProcessHandlers(): void {
   ipcMain.handle('process:start', async (event, { ids }: { ids: number[] }) => {
@@ -15,13 +15,18 @@ export function registerProcessHandlers(): void {
   })
 
   ipcMain.handle('process:status', async () => {
-    return {
-      isRunning: false,
-      totalFiles: 0,
-      completedFiles: 0,
-      failedFiles: 0,
-      currentFileId: null,
-      currentStep: null
-    }
+    return { ...processState }
+  })
+
+  ipcMain.handle('process:provide-password', async (_event, { fileId, password }: { fileId: number; password: string }) => {
+    resolvePassword(fileId, password)
+  })
+
+  // Re-process a single file (for re-extraction after prompt updates)
+  ipcMain.handle('process:reprocess', async (event, { id }: { id: number }) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    processFiles([id], window).catch((err) => {
+      console.error('Re-process error:', err)
+    })
   })
 }
