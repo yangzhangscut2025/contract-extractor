@@ -105,6 +105,57 @@ function robustParseJson(raw: string): Record<string, unknown> {
 }
 
 /**
+ * Call the LLM API and return raw text response (no JSON parsing).
+ * Used for translation and other free-text tasks.
+ */
+export async function callLlmRaw(prompt: string): Promise<string> {
+  const config = getConfig()
+
+  if (!config.llmApiKey) {
+    throw new Error('大模型 API Key 未配置。请在设置页面配置 API Key。')
+  }
+
+  const baseURL = config.llmProvider === 'zhipu'
+    ? 'https://open.bigmodel.cn/api/paas/v4'
+    : 'https://api.deepseek.com'
+
+  const client = new OpenAI({
+    apiKey: config.llmApiKey,
+    baseURL,
+    timeout: 60000
+  })
+
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (attempt > 0) {
+        logger.info(`LLM raw retry attempt ${attempt + 1}/3`)
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+      }
+
+      const response = await client.chat.completions.create({
+        model: config.llmModel || 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        max_tokens: 4096
+      })
+
+      return response.choices[0]?.message?.content || ''
+    } catch (err: unknown) {
+      lastError = err as Error
+      logger.warn(`LLM raw call failed (attempt ${attempt + 1}): ${String(err)}`)
+      const msg = String(err)
+      if (msg.includes('401') || msg.includes('403') || msg.includes('invalid api key')) {
+        throw new Error('API Key 无效或授权失败，请检查设置。')
+      }
+    }
+  }
+
+  throw new Error(`大模型调用失败（已重试3次）: ${lastError?.message || '未知错误'}`)
+}
+
+/**
  * Quick classification call (short response expected).
  */
 export async function classifyWithLlm(classificationPrompt: string): Promise<string> {

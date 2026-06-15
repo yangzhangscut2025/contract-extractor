@@ -12,6 +12,7 @@ const electronAPI = {
   fileOpen: (id: number): Promise<void> => ipcRenderer.invoke('file:open', { id }),
   fileGetPath: (id: number): Promise<string> => ipcRenderer.invoke('file:get-path', { id }),
   fileReadPdf: (id: number): Promise<string> => ipcRenderer.invoke('file:read-pdf', { id }),
+  fileTranslate: (id: number): Promise<string> => ipcRenderer.invoke('file:translate', { id }),
 
   // Processing
   processStart: (ids: number[]): Promise<void> => ipcRenderer.invoke('process:start', { ids }),

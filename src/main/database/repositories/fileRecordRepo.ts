@@ -15,6 +15,7 @@ export interface FileRecordRow {
   original_text: string | null
   error_message: string | null
   is_verified: number
+  translated_text: string | null
   created_at: string
   updated_at: string
 }
@@ -34,15 +35,16 @@ function rowToRecord(row: unknown[]): FileRecordRow {
     original_text: row[10] as string | null,
     error_message: row[11] as string | null,
     is_verified: row[12] as number,
-    created_at: row[13] as string,
-    updated_at: row[14] as string
+    translated_text: row[13] as string | null,
+    created_at: row[14] as string,
+    updated_at: row[15] as string
   }
 }
 
 export async function findAllFileRecords(): Promise<FileRecordRow[]> {
   const db = await getDatabase()
   const results = db.exec(
-    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, created_at, updated_at FROM file_records ORDER BY created_at DESC'
+    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, translated_text, created_at, updated_at FROM file_records ORDER BY created_at DESC'
   )
   if (results.length === 0) return []
   return results[0].values.map(rowToRecord)
@@ -51,7 +53,7 @@ export async function findAllFileRecords(): Promise<FileRecordRow[]> {
 export async function findFileRecordById(id: number): Promise<FileRecordRow | null> {
   const db = await getDatabase()
   const results = db.exec(
-    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, created_at, updated_at FROM file_records WHERE id = ?',
+    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, translated_text, created_at, updated_at FROM file_records WHERE id = ?',
     [id]
   )
   if (results.length === 0 || results[0].values.length === 0) return null
@@ -61,7 +63,7 @@ export async function findFileRecordById(id: number): Promise<FileRecordRow | nu
 export async function findFileRecordByMd5(md5: string): Promise<FileRecordRow | null> {
   const db = await getDatabase()
   const results = db.exec(
-    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, created_at, updated_at FROM file_records WHERE file_md5 = ?',
+    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, translated_text, created_at, updated_at FROM file_records WHERE file_md5 = ?',
     [md5]
   )
   if (results.length === 0 || results[0].values.length === 0) return null
@@ -71,8 +73,8 @@ export async function findFileRecordByMd5(md5: string): Promise<FileRecordRow | 
 export async function insertFileRecord(record: Omit<FileRecordRow, 'id' | 'created_at' | 'updated_at'>): Promise<FileRecordRow> {
   const db = await getDatabase()
   db.run(
-    `INSERT INTO file_records (file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO file_records (file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, translated_text)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       record.file_path,
       record.file_name,
@@ -85,7 +87,8 @@ export async function insertFileRecord(record: Omit<FileRecordRow, 'id' | 'creat
       record.ocr_used,
       record.original_text,
       record.error_message,
-      record.is_verified
+      record.is_verified,
+      record.translated_text
     ]
   )
   saveDatabase()
@@ -108,6 +111,7 @@ export async function updateFileRecord(id: number, updates: Partial<FileRecordRo
   if (updates.original_text !== undefined) { fields.push('original_text = ?'); values.push(updates.original_text) }
   if (updates.error_message !== undefined) { fields.push('error_message = ?'); values.push(updates.error_message) }
   if (updates.is_verified !== undefined) { fields.push('is_verified = ?'); values.push(updates.is_verified) }
+  if (updates.translated_text !== undefined) { fields.push('translated_text = ?'); values.push(updates.translated_text) }
 
   if (fields.length === 0) return
 

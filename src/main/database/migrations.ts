@@ -88,4 +88,10 @@ export function runMigrations(db: Database): void {
 
     db.run("INSERT INTO _migrations (name) VALUES ('001_core_tables')")
   }
+
+  // Migration 002: Add translated_text column for translation caching
+  if (!applied.has('002_translated_text')) {
+    db.run(`ALTER TABLE file_records ADD COLUMN translated_text TEXT`)
+    db.run("INSERT INTO _migrations (name) VALUES ('002_translated_text')")
+  }
 }

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Typography, Select, Button, Space, Input, Empty, message } from 'antd'
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
+import { SearchOutlined, ReloadOutlined, TranslationOutlined } from '@ant-design/icons'
 import { useAppStore } from '../../store/appStore'
 import { FieldTable } from './FieldTable'
 import { PdfViewer } from './PdfViewer'
@@ -16,6 +16,9 @@ export function ReviewPanel(): JSX.Element {
   const [pdfBase64, setPdfBase64] = useState<string | null>(null)
   const [highlightText, setHighlightText] = useState('')
   const [reprocessing, setReprocessing] = useState(false)
+  const [viewMode, setViewMode] = useState<'pdf' | 'translation'>('pdf')
+  const [translatedText, setTranslatedText] = useState<string | null>(null)
+  const [translating, setTranslating] = useState(false)
 
   const completedFiles = files.filter((f) => f.status === 'completed')
 
@@ -27,6 +30,8 @@ export function ReviewPanel(): JSX.Element {
     }
     setPdfBase64(null)
     setHighlightText('')
+    setViewMode('pdf')
+    setTranslatedText(null)
     window.electronAPI.fileReadPdf(currentFileId)
       .then(setPdfBase64)
       .catch(() => {})
@@ -65,6 +70,21 @@ export function ReviewPanel(): JSX.Element {
     }
   }, [currentFileId])
 
+  const handleTranslate = useCallback(async () => {
+    if (!currentFileId) return
+    setTranslating(true)
+    try {
+      const text = await window.electronAPI.fileTranslate(currentFileId)
+      setTranslatedText(text)
+      setViewMode('translation')
+      message.success('翻译完成')
+    } catch (err) {
+      message.error('翻译失败: ' + String(err))
+    } finally {
+      setTranslating(false)
+    }
+  }, [currentFileId])
+
   const handleReprocess = useCallback(async () => {
     if (!currentFileId) return
     setReprocessing(true)
@@ -94,14 +114,14 @@ export function ReviewPanel(): JSX.Element {
       >
         <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
           <Select
-            style={{ flex: 1, maxWidth: 'calc(100% - 100px)' }}
-            placeholder="选择已处理的文件"
+            style={{ flex: 1, maxWidth: 'calc(100% - 60px)' }}
+            placeholder="选择文件"
             value={currentFileId || undefined}
             onChange={handleFileSelect}
             options={completedFiles.map((f) => ({
-              label: f.file_name.length > 60
-                ? `${f.file_name.substring(0, 50)}... (${f.contract_number || '-'})`
-                : `${f.file_name} (${f.contract_number || '-'})`,
+              label: f.file_name.length > 40
+                ? `${f.file_name.substring(0, 30)}...`
+                : f.file_name,
               value: f.id
             }))}
             showSearch
@@ -112,11 +132,34 @@ export function ReviewPanel(): JSX.Element {
             loading={reprocessing}
             onClick={handleReprocess}
             disabled={!currentFileId}
-            title="用最新 Prompt 重新提取当前文件"
+            title="重新提取"
             style={{ flexShrink: 0 }}
+            size="small"
+          />
+          <Button
+            icon={<TranslationOutlined />}
+            loading={translating}
+            onClick={handleTranslate}
+            disabled={!currentFileId}
+            title="翻译为中文"
+            style={{ flexShrink: 0 }}
+            size="small"
+          />
+        </div>
+        {/* View toggle: PDF / Translation */}
+        <div style={{ marginBottom: 8, display: 'flex', gap: 16 }}>
+          <a
+            onClick={() => setViewMode('pdf')}
+            style={{ fontWeight: viewMode === 'pdf' ? 'bold' : 'normal', color: viewMode === 'pdf' ? '#1677ff' : '#666', cursor: 'pointer', fontSize: 13 }}
           >
-            重提
-          </Button>
+            PDF 原版
+          </a>
+          <a
+            onClick={() => setViewMode('translation')}
+            style={{ fontWeight: viewMode === 'translation' ? 'bold' : 'normal', color: viewMode === 'translation' ? '#1677ff' : '#666', cursor: 'pointer', fontSize: 13 }}
+          >
+            中文翻译
+          </a>
         </div>
         <div style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
           <Input
@@ -133,7 +176,15 @@ export function ReviewPanel(): JSX.Element {
           </div>
         )}
         <div style={{ flex: 1, overflow: 'hidden', border: '1px solid #f0f0f0', borderRadius: 4 }}>
-          <PdfViewer pdfBase64={pdfBase64} highlightText={highlightText} />
+          {viewMode === 'pdf' ? (
+            <PdfViewer pdfBase64={pdfBase64} highlightText={highlightText} />
+          ) : translatedText ? (
+            <div style={{ height: '100%', overflow: 'auto', padding: 16, whiteSpace: 'pre-wrap', fontFamily: 'SimSun, serif', fontSize: 14, lineHeight: 1.8, background: '#fff' }}>
+              {translatedText}
+            </div>
+          ) : (
+            <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>点击"翻译"按钮开始翻译</div>
+          )}
         </div>
       </div>
 

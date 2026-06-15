@@ -2,12 +2,14 @@ import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
 import { computeFileMd5 } from '../utils/crypto'
 import { parseFilename } from '../services/fileParser'
 import * as fs from 'fs'
+import { callLlmRaw } from '../services/llmService'
 import {
   findAllFileRecords,
   findFileRecordById,
   findFileRecordByMd5,
   insertFileRecord,
   deleteFileRecord,
+  updateFileRecord,
   FileRecordRow
 } from '../database/repositories/fileRecordRepo'
 
@@ -64,7 +66,8 @@ export function registerFileHandlers(): void {
         ocr_used: 0,
         original_text: null,
         error_message: null,
-        is_verified: 0
+        is_verified: 0,
+        translated_text: null
       })
 
       records.push(record)
@@ -108,6 +111,36 @@ export function registerFileHandlers(): void {
       throw new Error('文件记录不存在')
     }
     return record.file_path
+  })
+
+  // Translate original_text to Chinese (cached in DB)
+  ipcMain.handle('file:translate', async (_event, { id }: { id: number }) => {
+    const record = await findFileRecordById(id)
+    if (!record) throw new Error('文件记录不存在')
+    if (!record.original_text) throw new Error('原文为空，无法翻译')
+
+    // Return cached translation if available
+    if (record.translated_text) return record.translated_text
+
+    const prompt = `你是一位专业的多语言翻译专家。请将以下合同文本翻译成中文。
+
+要求：
+- 日期格式保持不变（如 2024-01-15）
+- 金额数字保持不变
+- 人名、公司名、地名保留原文，不翻译
+- 邮箱、电话、IBAN、SWIFT、护照号等标识信息保留原文
+- 保持原文的段落结构
+- 只输出翻译结果，不要加解释
+
+原文：
+${record.original_text.substring(0, 12000)}`
+
+    const text = await callLlmRaw(prompt)
+
+    // Cache in DB
+    await updateFileRecord(id, { translated_text: text.substring(0, 50000) })
+
+    return text
   })
 
   // Read PDF file as base64 for in-app viewing
