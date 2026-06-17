@@ -1,5 +1,5 @@
 import { Table, Button, Tag, Space, Popconfirm, message } from 'antd'
-import { DeleteOutlined, EyeOutlined, FilePdfOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EyeOutlined, FilePdfOutlined, ClearOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useAppStore } from '../../store/appStore'
 import type { FileRecord } from '../../types/contracts'
@@ -36,13 +36,36 @@ export function FileList(): JSX.Element {
     }
   }
 
+  const handleCleanupDuplicates = async (): Promise<void> => {
+    try {
+      const removed = await window.electronAPI.fileCleanupDuplicates()
+      if (removed > 0) {
+        message.success(`已清理 ${removed} 条重复记录`)
+        await useAppStore.getState().loadFiles()
+      } else {
+        message.info('没有重复文件')
+      }
+    } catch (err) {
+      message.error('清理失败: ' + String(err))
+    }
+  }
+
   const columns: ColumnsType<FileRecord> = [
+    {
+      title: '序号',
+      key: 'index',
+      width: 60,
+      render: (_: unknown, _record: FileRecord, index: number) => index + 1
+    },
     {
       title: '文件名',
       dataIndex: 'file_name',
       key: 'file_name',
       ellipsis: true,
-      width: 300
+      width: 300,
+      render: (name: string, record: FileRecord) => (
+        <span title={record.file_path}>{name}</span>
+      )
     },
     {
       title: '员工编号',
@@ -161,6 +184,9 @@ export function FileList(): JSX.Element {
             ? `已选择 ${selectedFileIds.length} 个文件`
             : `共 ${files.length} 个文件`}
         </span>
+        <Button size="small" icon={<ClearOutlined />} onClick={handleCleanupDuplicates} title="清理重复文件（保留提取字段最多的）">
+          清理重复
+        </Button>
       </div>
       <Table
         rowKey="id"

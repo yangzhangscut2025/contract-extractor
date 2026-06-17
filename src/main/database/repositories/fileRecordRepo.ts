@@ -44,7 +44,7 @@ function rowToRecord(row: unknown[]): FileRecordRow {
 export async function findAllFileRecords(): Promise<FileRecordRow[]> {
   const db = await getDatabase()
   const results = db.exec(
-    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, translated_text, created_at, updated_at FROM file_records ORDER BY created_at DESC'
+    'SELECT id, file_path, file_name, file_md5, file_size, employee_id, contract_number, contract_type, status, ocr_used, original_text, error_message, is_verified, translated_text, created_at, updated_at FROM file_records ORDER BY employee_id ASC, created_at ASC'
   )
   if (results.length === 0) return []
   return results[0].values.map(rowToRecord)

@@ -3,6 +3,7 @@ import { computeFileMd5 } from '../utils/crypto'
 import { parseFilename } from '../services/fileParser'
 import * as fs from 'fs'
 import { callLlmRaw } from '../services/llmService'
+import { getDatabase, saveDatabase } from '../database/connection'
 import {
   findAllFileRecords,
   findFileRecordById,
@@ -141,6 +142,38 @@ ${record.original_text.substring(0, 12000)}`
     await updateFileRecord(id, { translated_text: text.substring(0, 50000) })
 
     return text
+  })
+
+  // Cleanup duplicate records (same MD5), keep the one with most extraction results
+  ipcMain.handle('file:cleanup-duplicates', async () => {
+    const db = await getDatabase()
+    const dupes = db.exec(
+      'SELECT file_md5, COUNT(*) as cnt FROM file_records GROUP BY file_md5 HAVING cnt > 1'
+    )
+    if (!dupes.length) return 0
+
+    let removed = 0
+    for (const row of dupes[0].values) {
+      const md5 = row[0] as string
+      const records = db.exec(
+        `SELECT f.id, COUNT(e.id) as field_count
+         FROM file_records f
+         LEFT JOIN extraction_results e ON e.file_record_id = f.id
+         WHERE f.file_md5 = ?
+         GROUP BY f.id
+         ORDER BY field_count DESC, f.id ASC`, [md5]
+      )
+      if (!records.length) continue
+      const ids = records[0].values.map(r => r[0] as number)
+      // Keep first (most fields / oldest), delete rest
+      for (let i = 1; i < ids.length; i++) {
+        db.run('DELETE FROM extraction_results WHERE file_record_id = ?', [ids[i]])
+        db.run('DELETE FROM file_records WHERE id = ?', [ids[i]])
+        removed++
+      }
+    }
+    saveDatabase()
+    return removed
   })
 
   // Read PDF file as base64 for in-app viewing
