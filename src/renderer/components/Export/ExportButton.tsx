@@ -1,5 +1,5 @@
 import { Button, Space, message, List, Checkbox, Typography } from 'antd'
-import { ExportOutlined, FileExcelOutlined } from '@ant-design/icons'
+import { ExportOutlined, FileExcelOutlined, WarningOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 
@@ -10,17 +10,18 @@ export function ExportButton(): JSX.Element {
   const selectedFileIds = useAppStore((s) => s.selectedFileIds)
   const [exporting, setExporting] = useState(false)
 
-  const completedFiles = files.filter((f) => f.status === 'completed')
+  const exportableFiles = files.filter((f) => f.status === 'completed' || f.status === 'failed' || f.status === 'ocr_failed')
+  const failedFiles = files.filter((f) => f.status === 'failed' || f.status === 'ocr_failed')
 
   const handleExport = async (exportAll: boolean): Promise<void> => {
     const ids = exportAll
-      ? completedFiles.map((f) => f.id)
+      ? exportableFiles.map((f) => f.id)
       : selectedFileIds.length > 0
-        ? selectedFileIds.filter((id) => completedFiles.some((f) => f.id === id))
+        ? selectedFileIds.filter((id) => exportableFiles.some((f) => f.id === id))
         : []
 
     if (ids.length === 0) {
-      message.warning('没有可导出的文件')
+      message.warning('没有可导出的文件（含失败）')
       return
     }
 
@@ -53,16 +54,34 @@ export function ExportButton(): JSX.Element {
           onClick={() => handleExport(true)}
           loading={exporting}
         >
-          导出全部已完成
+          导出全部已处理
+        </Button>
+        <Button
+          danger
+          icon={<WarningOutlined />}
+          onClick={() => {
+            if (failedFiles.length === 0) {
+              message.warning('没有失败的文件')
+              return
+            }
+            setExporting(true)
+            window.electronAPI.exportExcel(failedFiles.map((f) => f.id))
+              .then((savedPath) => { if (savedPath) message.success(`已导出到: ${savedPath}`) })
+              .catch((err) => message.error('导出失败: ' + String(err)))
+              .finally(() => setExporting(false))
+          }}
+          loading={exporting}
+        >
+          导出失败 ({failedFiles.length})
         </Button>
       </Space>
 
-      {completedFiles.length > 0 ? (
+      {exportableFiles.length > 0 ? (
         <div>
-          <Text strong>可导出的文件 ({completedFiles.length}):</Text>
+          <Text strong>可导出的文件（含失败） ({exportableFiles.length}):</Text>
           <List
             size="small"
-            dataSource={completedFiles}
+            dataSource={exportableFiles}
             renderItem={(f) => (
               <List.Item>
                 <Text>
@@ -74,7 +93,7 @@ export function ExportButton(): JSX.Element {
           />
         </div>
       ) : (
-        <Text type="secondary">暂无已完成的文件可供导出</Text>
+        <Text type="secondary">暂无已处理文件可供导出</Text>
       )}
     </div>
   )

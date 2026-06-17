@@ -40,7 +40,7 @@ export async function extractTextPerPage(pdfPath: string): Promise<PageText[]> {
       pageNum: i,
       text: combined,
       charCount: meaningfulChars,
-      needsOcr: meaningfulChars < 30 // Less than 30 meaningful chars = likely scanned image
+      needsOcr: meaningfulChars < 100 // Less than 100 meaningful chars = likely scanned
     })
   }
 
@@ -54,16 +54,9 @@ export async function extractTextPerPage(pdfPath: string): Promise<PageText[]> {
 export function needsFullOcr(pages: PageText[]): boolean {
   if (pages.length === 0) return true
   const totalChars = pages.reduce((sum, p) => sum + p.charCount, 0)
-  return totalChars < 50
-}
-
-/**
- * Check if the entire PDF is scannable (has sufficient text on most pages).
- */
-export function hasTextContent(pages: PageText[]): boolean {
-  if (pages.length === 0) return false
-  const textPages = pages.filter((p) => !p.needsOcr).length
-  return textPages >= pages.length * 0.3 // At least 30% of pages have text
+  // Require at least 200 meaningful chars across all pages
+  // (50 was too low — scanned PDFs with page numbers/watermarks could pass)
+  return totalChars < 200
 }
 
 /**

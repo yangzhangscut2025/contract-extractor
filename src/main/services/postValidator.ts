@@ -29,6 +29,14 @@ export function validateField(fieldName: string, value: string | null): Validati
 
   const strValue = String(value)
 
+  // Gender
+  if (fieldName === 'gender') {
+    if (strValue !== '男' && strValue !== '女' && strValue !== '未知') {
+      return { status: 'warning', message: '期望值：男/女/未知' }
+    }
+    return { status: 'ok', message: null }
+  }
+
   // Email fields
   if (fieldName === 'personal_email' || fieldName === 'work_email') {
     if (!EMAIL_REGEX.test(strValue)) {
@@ -69,6 +77,14 @@ export function validateField(fieldName: string, value: string | null): Validati
     }
     if (!AMOUNT_REGEX.test(strValue.replace(/[, ]/g, ''))) {
       return { status: 'warning', message: '金额待清理' }
+    }
+    return { status: 'ok', message: null }
+  }
+
+  // Contract term type
+  if (fieldName === 'contract_term_type') {
+    if (strValue !== '有固定期限' && strValue !== '无固定期限') {
+      return { status: 'warning', message: '期望值：有固定期限 或 无固定期限' }
     }
     return { status: 'ok', message: null }
   }

@@ -5,7 +5,7 @@ import {
   insertExtractionResult
 } from '../database/repositories/extractionResultRepo'
 import { parseFilename } from './fileParser'
-import { extractTextPerPage, combinePageTexts, checkEncrypted, extractTextWithPassword, needsFullOcr } from './textExtractor'
+import { extractTextPerPage, combinePageTexts, checkEncrypted, extractTextWithPassword } from './textExtractor'
 import { classifyByKeywords, getClassificationPrompt } from './fileClassifier'
 import { generateContractNumber } from './contractNumberGenerator'
 import { classifyWithLlm, callLlm } from './llmService'
@@ -24,7 +24,7 @@ const EXTRACTION_PROMPT = `你是一位专业的HR合同信息提取专家。请
 
 注意：合同编号、合同类别、员工系统编号不需要提取，已由系统自动生成。
 
-待提取字段列表（共42个字段）：
+待提取字段列表（共43个字段）：
 
 {
   "is_signed_both": "",
@@ -35,6 +35,7 @@ const EXTRACTION_PROMPT = `你是一位专业的HR合同信息提取专家。请
   "personal_email": "",
   "work_email": "",
   "start_date": "",
+  "contract_term_type": "",
   "contract_duration": "",
   "contract_duration_unit": "",
   "contract_start_date": "",
@@ -72,6 +73,8 @@ const EXTRACTION_PROMPT = `你是一位专业的HR合同信息提取专家。请
 }
 
 提取规则：
+- contract_term_type：判断合同期限类型。若合同中明确写明"permanent"/"indefinite"/"无固定期限"/"不限"，或明确表示合同无终止日期，则值为"无固定期限"；否则值为"有固定期限"。不得为null。
+- gender：男性/女性/未知。若原文中能明确判断性别（如 Mr./Mrs./Male/Female/男/女），提取对应值"男"或"女"。若无法判断（如名字性别不明、无称呼前缀、无性别代词），填"未知"。不得返回null或空字符串。
 - 日期统一转换为 YYYY-MM-DD 格式。
 - **contract_start_date（重要）**：
   * 这是合同的生效/执行日期，是提取的关键字段。
@@ -231,6 +234,8 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
       // Step 2: Text extraction
       let originalText = ''
       let ocrUsed = false
+      let ocrFailed = false
+      let ocrErrorMessage = ''
 
       sendProgress(mainWindow, 'process:progress', {
         fileId,
@@ -252,30 +257,38 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
             throw new Error('PDF 密码错误或无法解密，请检查密码后重试')
           }
         } else {
-          const pages = await extractTextPerPage(record.file_path)
-          const fullText = combinePageTexts(pages)
-
-          // Check if OCR is needed
-          if (needsFullOcr(pages)) {
+          // If OCR configured, use it directly (skip pdfjs text extraction)
+          if (isOcrConfigured()) {
             sendProgress(mainWindow, 'process:progress', {
-              fileId,
-              fileName: record.file_name,
-              step: 'OCR 识别',
-              percent: 30
+              fileId, fileName: record.file_name,
+              step: 'OCR 识别', percent: 30
             })
-
-            if (isOcrConfigured()) {
+            try {
               originalText = await recognizePdfWithOcr(record.file_path)
               ocrUsed = true
-            } else {
-              // Without OCR, use what text we have
-              originalText = fullText
+            } catch (ocrErr) {
+              logger.error(`OCR failed: ${String(ocrErr)}`)
+              // Fallback to pdfjs text extraction
+              const pages = await extractTextPerPage(record.file_path)
+              originalText = combinePageTexts(pages)
               if (!originalText.trim()) {
-                throw new Error('PDF 为扫描件且 OCR 未配置。请在设置页面配置阿里云 OCR。')
+                throw new Error(`OCR 识别失败且 PDF 无文字层: ${String(ocrErr)}`)
               }
+              // Mark OCR failure — use fallback text, flag status
+              ocrFailed = true
+              ocrErrorMessage = String(ocrErr).substring(0, 200)
+              await updateFileRecord(fileId, {
+                ocr_used: 0,
+                error_message: `[OCR失败，使用PDF文字层] ${ocrErrorMessage}`
+              })
             }
           } else {
-            originalText = fullText
+            // No OCR — use pdfjs text extraction
+            const pages = await extractTextPerPage(record.file_path)
+            originalText = combinePageTexts(pages)
+            if (!originalText.trim()) {
+              throw new Error('PDF 为扫描件且 OCR 未配置。请在设置页面配置阿里云 OCR。')
+            }
           }
         }
       } catch (err: unknown) {
@@ -315,19 +328,13 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
         contractType = llmType as 'EmploymentContract' | 'SalaryAdjustment' | 'Other'
       }
 
-      await updateFileRecord(fileId, { contract_type: contractType })
-
+      // Default to EmploymentContract if classification is uncertain
+      // (multilingual contracts may not match keywords or LLM classification)
       if (contractType === 'Other') {
-        await updateFileRecord(fileId, { status: 'skipped', error_message: '无法识别的文件类型' })
-        sendProgress(mainWindow, 'process:file-complete', {
-          fileId,
-          fileName: record.file_name,
-          success: true,
-          contractType: 'Other',
-          errorMessage: '文件类型未识别，已跳过'
-        })
-        return
+        contractType = 'EmploymentContract'
       }
+
+      await updateFileRecord(fileId, { contract_type: contractType })
 
       // Step 3: Generate contract number
       sendProgress(mainWindow, 'process:progress', {
@@ -425,8 +432,10 @@ ${originalText.substring(0, 4000)}
 
       // Step 5: Post-validation is done inline (validateField above)
 
-      // Mark as completed
-      await updateFileRecord(fileId, { status: 'completed' })
+      // Mark as completed (or OCR failed if fallback was used)
+      await updateFileRecord(fileId, {
+        status: ocrFailed ? 'ocr_failed' : 'completed'
+      })
       sendProgress(mainWindow, 'process:file-complete', {
         fileId,
         fileName: record.file_name,

@@ -1,10 +1,12 @@
 import * as ExcelJS from 'exceljs'
 import { findFileRecordById } from '../database/repositories/fileRecordRepo'
 import { findResultsByFileId } from '../database/repositories/extractionResultRepo'
+import { getCurrentSequence } from '../database/repositories/sequenceRepo'
 import { logger } from '../utils/logger'
 
 // 43 columns in exact order per the requirements (Appendix A)
 const COLUMNS = [
+  { header: '文件名称', key: 'file_name' },
   { header: '员工系统编号', key: 'employee_id' },
   { header: '合同编号', key: 'contract_number' },
   { header: '合同类别', key: 'contract_type' },
@@ -16,6 +18,7 @@ const COLUMNS = [
   { header: '个人邮箱', key: 'personal_email' },
   { header: '工作邮箱', key: 'work_email' },
   { header: '入职时间', key: 'start_date' },
+  { header: '合同期限类型', key: 'contract_term_type' },
   { header: '合同期限', key: 'contract_duration' },
   { header: '合同期限单位', key: 'contract_duration_unit' },
   { header: '合同生效日期', key: 'contract_start_date' },
@@ -49,7 +52,8 @@ const COLUMNS = [
   { header: '员工银行账户名', key: 'bank_account_name' },
   { header: '员工银行账号', key: 'bank_account_number' },
   { header: '员工国际银行账户号码', key: 'iban' },
-  { header: '员工银行SWIFT代码', key: 'swift_code' }
+  { header: '员工银行SWIFT代码', key: 'swift_code' },
+  { header: '错误信息', key: 'error_message' }
 ]
 
 export async function exportToExcel(fileIds: number[], outputPath: string): Promise<void> {
@@ -85,7 +89,7 @@ export async function exportToExcel(fileIds: number[], outputPath: string): Prom
   let rowIndex = 2
   for (const fileId of fileIds) {
     const record = await findFileRecordById(fileId)
-    if (!record || record.status !== 'completed') continue
+    if (!record || (record.status !== 'completed' && record.status !== 'failed' && record.status !== 'ocr_failed')) continue
 
     const results = await findResultsByFileId(fileId)
     const fieldMap = new Map<string, string | null>()
@@ -97,16 +101,31 @@ export async function exportToExcel(fileIds: number[], outputPath: string): Prom
     // Build row data
     const rowData: Record<string, string | null> = {}
 
+    // Error message for failed files
+    rowData['error_message'] = record.error_message || null
+
+    // File name (first column)
+    rowData['file_name'] = record.file_name
+
     // System fields (3)
     rowData['employee_id'] = record.employee_id
-    rowData['contract_number'] = record.contract_number
+    // For failed files without contract_number, compute expected number (read-only, no DB increment)
+    if (record.contract_number && record.contract_number !== 'null') {
+      rowData['contract_number'] = record.contract_number
+    } else if (record.employee_id) {
+      const seq = await getCurrentSequence(record.employee_id)
+      const nextSeq = String(seq + 1).padStart(2, '0')
+      rowData['contract_number'] = `${record.employee_id}_${nextSeq}`
+    } else {
+      rowData['contract_number'] = null
+    }
     rowData['contract_type'] = record.contract_type === 'EmploymentContract' ? '劳动合同'
       : record.contract_type === 'SalaryAdjustment' ? '调薪文件'
       : record.contract_type
 
     // LLM fields (40) — leave empty if not in the extraction results
     for (const col of COLUMNS) {
-      if (['employee_id', 'contract_number', 'contract_type'].includes(col.key)) continue
+      if (['file_name', 'employee_id', 'contract_number', 'contract_type'].includes(col.key)) continue
       rowData[col.key] = fieldMap.get(col.key) ?? null
     }
 

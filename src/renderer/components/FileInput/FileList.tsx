@@ -9,7 +9,8 @@ const statusMap: Record<string, { color: string; label: string }> = {
   processing: { color: 'processing', label: '处理中' },
   completed: { color: 'success', label: '已完成' },
   failed: { color: 'error', label: '失败' },
-  skipped: { color: 'warning', label: '已跳过' }
+  skipped: { color: 'warning', label: '已跳过' },
+  ocr_failed: { color: 'orange', label: 'OCR失败' }
 }
 
 export function FileList(): JSX.Element {
@@ -87,6 +88,14 @@ export function FileList(): JSX.Element {
       key: 'is_verified',
       width: 80,
       render: (val: number) => val ? <Tag color="green">是</Tag> : <Tag>否</Tag>
+    },
+    {
+      title: '错误信息',
+      dataIndex: 'error_message',
+      key: 'error_message',
+      width: 150,
+      ellipsis: true,
+      render: (val: string | null) => val ? <span style={{ color: '#ff4d4f', fontSize: 12 }} title={val}>{val}</span> : '-'
     },
     {
       title: '操作',

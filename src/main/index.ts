@@ -1,7 +1,8 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerAllHandlers } from './ipc'
+
+const isDev = !app.isPackaged
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -28,7 +29,7 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
@@ -36,15 +37,28 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.contract-extractor')
+  app.setAppUserModelId('com.contract-extractor')
 
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    window.webContents.on('before-input-event', (_event, input) => {
+      if (input.type === 'keyDown') {
+        if (!isDev) {
+          if (input.code === 'KeyR' && (input.control || input.meta))
+            _event.preventDefault()
+        } else {
+          if (input.code === 'F12') {
+            if (window.webContents.isDevToolsOpened()) {
+              window.webContents.closeDevTools()
+            } else {
+              window.webContents.openDevTools({ mode: 'undocked' })
+            }
+          }
+        }
+      }
+    })
   })
 
-  // Register all IPC handlers before creating window
   registerAllHandlers()
-
   createWindow()
 
   app.on('activate', function () {
