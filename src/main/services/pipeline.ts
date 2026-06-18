@@ -2,7 +2,8 @@ import { BrowserWindow } from 'electron'
 import { findFileRecordById, updateFileRecord } from '../database/repositories/fileRecordRepo'
 import {
   deleteResultsByFileId,
-  insertExtractionResult
+  insertExtractionResult,
+  findResultsByFileId
 } from '../database/repositories/extractionResultRepo'
 import { parseFilename } from './fileParser'
 import { extractTextPerPage, combinePageTexts, checkEncrypted, extractTextWithPassword } from './textExtractor'
@@ -355,6 +356,15 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
         percent: 55
       })
 
+      // Save old manual values before clearing
+      const oldResults = await findResultsByFileId(fileId)
+      const manualValues = new Map<string, string | null>()
+      for (const r of oldResults) {
+        if (r.manual_value !== null && r.manual_value !== undefined) {
+          manualValues.set(r.field_name, r.manual_value)
+        }
+      }
+
       // Clear previous extraction results
       await deleteResultsByFileId(fileId)
 
@@ -420,11 +430,14 @@ ${originalText.substring(0, 4000)}
         const strValue = value !== null && value !== undefined ? String(value) : null
         const validation = validateField(fieldName, strValue)
 
+        // Restore old manual value if user previously edited this field
+        const oldManual = manualValues.get(fieldName) ?? null
+
         await insertExtractionResult({
           file_record_id: fileId,
           field_name: fieldName,
           extracted_value: strValue,
-          manual_value: null,
+          manual_value: oldManual,
           validation_status: validation.status,
           validation_message: validation.message
         })
