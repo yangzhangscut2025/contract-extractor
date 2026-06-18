@@ -13,7 +13,9 @@ async function llmRequest(
 ): Promise<string> {
   const config = getConfig()
 
-  if (!config.llmApiKey) {
+  // Clean non-ASCII chars that may slip into API key during copy/paste
+  const apiKey = config.llmApiKey.replace(/[^\x20-\x7E]/g, '').trim()
+  if (!apiKey) {
     throw new Error('大模型 API Key 未配置。请在设置页面配置 API Key。')
   }
 
@@ -30,26 +32,38 @@ async function llmRequest(
         await new Promise((resolve) => setTimeout(resolve, 2000))
       }
 
-      const resp = await fetch(`${baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.llmApiKey}`
-        },
-        body: JSON.stringify({
-          model: config.llmModel || 'deepseek-chat',
-          messages,
-          temperature,
-          max_tokens: maxTokens
-        })
+      const body = JSON.stringify({
+        model: config.llmModel || 'deepseek-chat',
+        messages,
+        temperature,
+        max_tokens: maxTokens
       })
 
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => '')
-        throw new Error(`HTTP ${resp.status}: ${errText}`)
-      }
+      // Use https.request to avoid Node 20 fetch ByteString issues with Unicode
+      const url = new URL(`${baseURL}/chat/completions`)
+      const content = await new Promise<string>((resolve, reject) => {
+        const http = url.protocol === 'https:' ? require('https') : require('http')
+        const req = http.request({
+          hostname: url.hostname, path: url.pathname, method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Length': Buffer.byteLength(body)
+          }
+        }, (res: any) => {
+          let data = ''
+          res.on('data', (chunk: string) => data += chunk)
+          res.on('end', () => {
+            if (res.statusCode !== 200) reject(new Error(`HTTP ${res.statusCode}: ${data.substring(0, 200)}`))
+            else resolve(data)
+          })
+        })
+        req.on('error', reject)
+        req.write(body)
+        req.end()
+      })
 
-      const data = await resp.json() as {
+      const data = JSON.parse(content) as {
         choices?: Array<{ message?: { content?: string } }>
       }
       return data.choices?.[0]?.message?.content || ''
