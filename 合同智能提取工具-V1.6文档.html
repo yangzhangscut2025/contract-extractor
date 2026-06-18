@@ -15,605 +15,349 @@ pre{background:#f2f2f2;padding:12px;white-space:pre-wrap;font-size:10pt;border-l
 b{color:#1a1a1a}
 </style></head>
 <body>
-<h1>产品需求文档：多语言合同智能提取工具</h1>
+<h1>合同智能提取工具 — 产品需求文档</h1>
 <br>
- <b>版本</b> <b>：V1.7</b>
- <b>更新日期</b> <b>：2026-06-17</b>
- <b>产品经理</b> <b>：张阳</b>
- <b>目标用户</b> <b>：数据校验人员、HR运营人员  </b>
+<b>版本</b>：V1.7 | <b>日期</b>：2026-06-18 | <b>作者</b>：张阳 | <b>用户</b>：HR 运营 / 数据校验
 <br>
 ---
 <br>
-<h2>1. 项目背景与目标</h2>
+<h2>1. 概述</h2>
 <br>
-<h3>1.1 背景</h3>
+<h3>1.1 背景</h3>
 <br>
-<b>公司需要处理来自不同国家、格式不统一的劳动合同及调薪文件（PDF格式），人工录入关键字段效率低、易出错。现有文件由系统导出，命名有规律，但文件内部</b> <b>不包含合同编号</b> <b>，需要工具自动生成合同编号来区分同一员工的多个合同。文件类型多样（文字型PDF、扫描件、多语言混合）。</b>
+公司收到来自各国的劳动合同及调薪文件（PDF），格式不统一、语言多样，人工录入效率低且易出错。文件名有规律，但文件内不含合同编号，需工具自动生成。
 <br>
-<h3>1.2 目标</h3>
+<h3>1.2 目标</h3>
 <br>
-<b>开发一个桌面辅助工具（基于Electron），实现：</b>
+开发一款 Electron 桌面工具，实现：
 <br>
 <ul>
-<li><b>批量导入 PDF 文件</b></li>
-<li><b>自动识别文件类型（劳动合同 / 调薪文件 / 其他）</b></li>
-<li><b>自动提取 43 个关键字段（劳动合同）+ 3 个系统生成字段 = </b><b>46 列</b></li>
-<li><b>自动生成合同编号（同一员工按顺序递增）</b></li>
-<li><b>对于文字型 PDF 直接提取文本，对于扫描件/图片型 PDF 调用阿里云 OCR</b></li>
-<li><b>人工校对与修正</b></li>
-<li><b>导出为标准 Excel 模板（46 列）</b></li>
+<li>批量导入 PDF，自动识别文件类型</li>
+<li>提取 43 个字段（LLM）+ 3 个系统生成字段 = 46 列</li>
+<li>自动生成合同编号（同员工递增）</li>
+<li>文字型 PDF 直接提取，扫描件调用阿里云 OCR</li>
+<li>人工校对、翻译辅助、Excel 导出</li>
 </ul>
 <br>
-<h3>1.3 适用范围</h3>
+<h3>1.3 适用范围</h3>
 <br>
 <ul>
-<li><b>输入</b> <b>：系统导出的 PDF 文件，文件命名格式固定（见 2.1），文件内容不包含合同编号</b></li>
-<li><b>处理对象</b> <b>：劳动合同、调薪文件（其他类型文件自动跳过或标记）</b></li>
-<li><b>语言支持</b> <b>：英文、泰文、中文等多语言混合，输出优先英文，若无英文则保留原文</b></li>
+<li><b>输入</b>：系统导出的 PDF，文件名格式固定</li>
+<li><b>类型</b>：劳动合同、调薪文件</li>
+<li><b>语言</b>：英文、泰文、中文等多语言混合</li>
 </ul>
 <br>
 ---
 <br>
-<h2>2. 业务流程</h2>
+<h2>2. 业务流程</h2>
 <br>
-<h3>2.1 文件命名规则（已知条件）</h3>
-<br>
-<ul>
-<li><b>文件名示例：</b><code>&lt;span class="ne-text"&gt;CE3E5PLL__1.Mr.Chanon - Employment_agreement Thai-English_20240228121302A920.pdf&lt;/span&gt;</code></li>
-<li><b>解析规则：</b></li>
-</ul>
+<h3>2.1 文件命名规则</h3>
 <br>
 <ul>
-<li><b>取</b><b>第一个</b> <code>&lt;span class="ne-text"&gt;__&lt;/span&gt;</code>（双下划线）<b>左侧</b>部分作为员工系统编号（如 <code>&lt;span class="ne-text"&gt;CE3E5PLL&lt;/span&gt;</code>）</li>
-<li><b>若文件名中不包含 </b><code>&lt;span class="ne-text"&gt;__&lt;/span&gt;</code>，则取前 8 个字符作为员工编号（此情况实际不会发生，但保留容错）</li>
-<li><b>员工编号长度可能不等于 8，直接使用原字符串（不截断、不补位）</b></li>
+<li>示例：<code>CE3E5PLL__1.Mr.Chanon - Employment_agreement.pdf</code></li>
+<li>规则：取第一个 <code>__</code> 左侧为员工编号（如 <code>CE3E5PLL</code>）</li>
+<li>容错：无 <code>__</code> 时取前 8 字符</li>
 </ul>
 <br>
-<h3>2.2 整体处理流程</h3>
+<h3>2.2 处理流程</h3>
 <br>
 <pre>
-用户选择文件（单个或批量）
-    ↓
-解析文件名 → 提取员工系统编号（第一个__左侧）
-    ↓
-读取文件内容
-    ↓
-┌─────────────────────────────────────┐
-│ 第一步：文件类型识别                  │
-│ - 先尝试从文件内容关键词判断           │
-│ - 若不确定，调用大模型快速分类         │
-│ - 结果：劳动合同 / 调薪文件 / 其他     │
-└─────────────────────────────────────┘
-    ↓
-若为“其他” → 跳过，记录日志，提醒用户
-    ↓
-若为“劳动合同”或“调薪文件” → 继续
-    ↓
-┌─────────────────────────────────────┐
-│ 第二步：文本提取                      │
-│ 1. 尝试用 pdf.js 提取文字层           │
-│ 2. 若失败（空白或乱码）→ 转为图片 →   │
-│    调用阿里云 OCR API                  │
-│ 3. 若 OCR 仍失败 → 标记“不可识别”，    │
-│    提醒人工审核（用户自行处理，不自动重试）│
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 第三步：合同编号自动生成               │
-│ - 格式：员工系统编号 + "_" + 序号     │
-│ - 序号根据历史记录中同一员工的最大序号+1 │
-│   （第一份为 _01，第二份 _02）        │
-│ - 若用户删除某记录后重新导入，序号仍取 │
-│   当前历史中的最大序号+1（不填补空缺）  │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 第四步：确定合同类别                   │
-│ - 取自第一步的文件类型识别结果         │
-│ - 取值：劳动合同 / 调薪文件            │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 第五步：信息提取（大模型 API）          │
-│ - 劳动合同和调薪文件统一使用 42 字段 Prompt │
-│   （见附录A），LLM 从原文中提取存在的字段，  │
-│   缺失字段值为 null                          │
-│ - 调用 DeepSeek 或 智谱 API            │
-│ - 输出 JSON（缺失字段值为 null）        │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 第六步：后处理校验                     │
-│ - 邮箱格式、日期格式、电话格式验证     │
-│ - 金额数字格式验证                     │
-│ - 不符合规则的字段增加“待核对”标记     │
-└─────────────────────────────────────┘
-    ↓
-展示在 UI 上（左侧原文，右侧提取结果表格）
-    ↓
-人工校对、修改字段值
-    ↓
-导出为 Excel（46 列，空值显示为空白单元格）
+导入 PDF
+  → 文件名解析（员工编号）
+  → 文本提取（OCR 优先，失败回退 pdfjs）
+  → 文件分类（关键词 + LLM，不确定默认劳动合同）
+  → 合同编号生成（员工编号_序号，递增不填补）
+  → LLM 提取 43 字段（输出 JSON）
+  → 补漏校验（日期格式、邮箱格式等）
+  → 展示校对（左侧 PDF 原版，右侧字段表格）
+  → 导出 Excel（46 列）
 </pre>
 <br>
 ---
 <br>
-<h2>3. 功能需求详述</h2>
+<h2>3. 功能详述</h2>
 <br>
-<h3>3.1 文件输入与管理</h3>
+<h3>3.1 文件管理</h3>
 <br>
 <table>
-<tr><td>功能点</td><td>描述</td></tr>
-<tr><td>单个/批量导入</td><td>支持选择多个 PDF 文件，显示进度条</td></tr>
-<tr><td>文件列表</td><td>展示已导入文件名、员工编号、合同编号、合同类别、处理状态（待处理/处理中/已完成/失败）</td></tr>
-<tr><td>拖拽上传</td><td>支持拖拽 PDF 文件到窗口</td></tr>
-<tr><td>历史记录</td><td>自动保存处理结果到本地数据库（SQLite），支持再次打开查看</td></tr>
+<tr><td>功能</td><td>说明</td></tr>
+<tr><td>导入</td><td>支持拖拽/点击，批量选择 PDF，MD5 自动去重</td></tr>
+<tr><td>列表</td><td>显示序号、文件名、员工编号、合同编号、合同类别、状态、错误信息</td></tr>
+<tr><td>排序</td><td>按员工编号升序，与员工序号表 CSV 对应</td></tr>
+<tr><td>清理重复</td><td>一键去重，保留提取字段最多的记录</td></tr>
+<tr><td>原件</td><td>打开文件所在文件夹并定位</td></tr>
 </table>
 <br>
-<h3>3.2 文件类型识别（用于确定“合同类别”）</h3>
+<h3>3.2 文件分类</h3>
+<br>
+1. 关键词匹配（前 2000 字符）：<code>employment agreement</code>、<code>salary adjustment</code>、<code>劳动合同</code> 等
+2. 规则无法确定 → LLM 快速分类
+3. 仍不确定 → 默认按劳动合同处理
+<br>
+<h3>3.3 文本提取</h3>
+<br>
+<table>
+<tr><td>场景</td><td>处理方式</td></tr>
+<tr><td>OCR 已配置</td><td>PDF 逐页渲染为图片 → 阿里云 OCR → 拼接文本</td></tr>
+<tr><td>OCR 未配置</td><td>pdfjs 提取文字层</td></tr>
+<tr><td>OCR 失败</td><td>回退 pdfjs；文字量足够则标 `completed`，否则标 `ocr_failed`</td></tr>
+<tr><td>PDF 加密</td><td>弹出密码输入框</td></tr>
+</table>
+<br>
+<h3>3.4 合同编号</h3>
 <br>
 <ul>
-<li><b>规则判断</b> <b>：扫描文件内容（前 2000 字符）是否包含关键词 </b><code>&lt;span class="ne-text"&gt;employment agreement&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;employment contract&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;salary adjustment&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;salary increase&lt;/span&gt;</code> 等。匹配到劳动合同类关键词则分类为 <b>劳动合同</b> <b>，匹配到调薪类关键词则分类为</b> <b>调薪文件</b> <b>。</b></li>
-<li><b>大模型快速分类</b> <b>：若规则无法确定，调用大模型，Prompt 如下：</b></li>
+<li>格式：<code>员工编号_序号</code>（如 <code>CE3E5PLL_01</code>）</li>
+<li>序号 = 该员工历史最大序号 + 1，删除不填补</li>
+<li>同一员工多文件按导入顺序分配</li>
 </ul>
+<br>
+<h3>3.5 字段提取</h3>
+<br>
+劳动合同与调薪文件统一使用 43 字段 Prompt（见附录 A），LLM 自动从原文提取存在的字段，缺失为 null。
+<br>
+<b>字段分类</b>：
+<br>
+<table>
+<tr><td>类别</td><td>包含字段</td></tr>
+<tr><td>基础信息</td><td>姓名、性别、国籍、生日、年龄、婚姻状况、出身地</td></tr>
+<tr><td>雇佣信息</td><td>雇主名称、就职国家、岗位名称、入职时间</td></tr>
+<tr><td>合同期限</td><td>期限类型、期限、单位、生效/结束日期、试用期</td></tr>
+<tr><td>薪酬</td><td>年薪/月薪/时薪及币种、交通补贴、餐补、奖金、其他补贴</td></tr>
+<tr><td>休假</td><td>年假天数、病假天数</td></tr>
+<tr><td>银行信息</td><td>银行名称、地址、账户名、账号、IBAN、SWIFT</td></tr>
+<tr><td>联系方式</td><td>个人邮箱、工作邮箱、电话、地址、身份证件、社保号</td></tr>
+<tr><td>系统生成</td><td>员工编号、合同编号、合同类别（3 列）</td></tr>
+</table>
+<br>
+<h3>3.6 校验规则</h3>
+<br>
+<table>
+<tr><td>字段类型</td><td>规则</td><td>不通过标记</td></tr>
+<tr><td>邮箱</td><td>正则匹配</td><td>待核对邮箱</td></tr>
+<tr><td>日期</td><td>YYYY-MM-DD，年份 1900-2100</td><td>日期格式异常</td></tr>
+<tr><td>电话</td><td>去符号后数字 ≥ 8 位</td><td>电话格式可疑</td></tr>
+<tr><td>金额</td><td>纯数字，最多一个小数点</td><td>金额待清理</td></tr>
+<tr><td>年龄</td><td>0-120 整数</td><td>年龄超出范围</td></tr>
+<tr><td>性别</td><td>男/女/未知</td><td>期望值不符</td></tr>
+<tr><td>合同期限类型</td><td>有固定期限/无固定期限</td><td>期望值不符</td></tr>
+</table>
+<br>
+<h3>3.7 校对界面</h3>
+<br>
+<ul>
+<li>左侧：PDF 原版（Canvas 逐页渲染，上下滑动），支持翻译切换</li>
+<li>右侧：字段表格（提取值 / 修正值 / 校验状态），点击字段值左侧高亮定位</li>
+<li>翻译：LLM 译为中文，日期/金额/人名/邮箱等保留原文，结果缓存</li>
+<li>重提：重新提取不丢失手动修正值，自动清翻译缓存</li>
+</ul>
+<br>
+<h3>3.8 导出</h3>
+<br>
+<ul>
+<li>格式：Excel (.xlsx)，46 列</li>
+<li>范围：选中文件 / 全部已处理 / 仅失败文件</li>
+<li>空值：显示为空白单元格</li>
+<li>校验警告：黄色高亮 + 批注</li>
+<li>失败文件：自动填入员工编号、合同编号（推算）、错误信息</li>
+</ul>
+<br>
+<h3>3.9 配置</h3>
+<br>
+<table>
+<tr><td>配置项</td><td>说明</td></tr>
+<tr><td>LLM 服务商</td><td>DeepSeek / 智谱 AI</td></tr>
+<tr><td>API Key</td><td>本地存储，脱敏显示</td></tr>
+<tr><td>模型名称</td><td>默认 `deepseek-chat`</td></tr>
+<tr><td>OCR</td><td>阿里云（AccessKey），可选不配</td></tr>
+</table>
+<br>
+---
+<br>
+<h2>4. 异常处理</h2>
+<br>
+<table>
+<tr><td>场景</td><td>处理</td></tr>
+<tr><td>非 PDF 文件</td><td>跳过</td></tr>
+<tr><td>PDF 加密</td><td>弹窗输入密码</td></tr>
+<tr><td>文字层为空 + OCR 未配置</td><td>标记失败</td></tr>
+<tr><td>LLM 返回非 JSON</td><td>重试，仍失败则标记失败</td></tr>
+<tr><td>网络中断</td><td>自动重试</td></tr>
+<tr><td>重复导入</td><td>MD5 去重</td></tr>
+</table>
+<br>
+---
+<br>
+<h2>5. 非功能需求</h2>
+<br>
+<ul>
+<li><b>性能</b>：单文件 ≤ 20 秒，3 文件并发</li>
+<li><b>安全</b>：所有密钥仅存本地，不上传</li>
+<li><b>兼容</b>：Windows 10/11，分辨率 ≥ 1366×768</li>
+<li><b>维护</b>：字段配置化（JSON），代码模块化</li>
+</ul>
+<br>
+---
+<br>
+<h2>6. 附录</h2>
+<br>
+<h3>附录 A：46 列完整列表</h3>
+<br>
+<table>
+<tr><td>#</td><td>中文名</td><td>英文名</td><td>类型</td><td>来源</td></tr>
+<tr><td>1</td><td>文件名称</td><td>file_name</td><td>string</td><td>系统</td></tr>
+<tr><td>2</td><td>员工系统编号</td><td>employee_id</td><td>string</td><td>文件名解析</td></tr>
+<tr><td>3</td><td>合同编号</td><td>contract_number</td><td>string</td><td>自动生成</td></tr>
+<tr><td>4</td><td>合同类别</td><td>contract_type</td><td>string</td><td>分类</td></tr>
+<tr><td>5</td><td>是否双签版合同</td><td>is_signed_both</td><td>string</td><td>LLM</td></tr>
+<tr><td>6</td><td>法定姓名</td><td>full_name</td><td>string</td><td>LLM</td></tr>
+<tr><td>7</td><td>就职国家/地区</td><td>employment_country</td><td>string</td><td>LLM</td></tr>
+<tr><td>8</td><td>雇主名称</td><td>employer_name</td><td>string</td><td>LLM</td></tr>
+<tr><td>9</td><td>性别</td><td>gender</td><td>string</td><td>LLM</td></tr>
+<tr><td>10</td><td>个人邮箱</td><td>personal_email</td><td>string</td><td>LLM</td></tr>
+<tr><td>11</td><td>工作邮箱</td><td>work_email</td><td>string</td><td>LLM</td></tr>
+<tr><td>12</td><td>入职时间</td><td>start_date</td><td>date</td><td>LLM</td></tr>
+<tr><td>13</td><td>合同期限类型</td><td>contract_term_type</td><td>string</td><td>LLM</td></tr>
+<tr><td>14</td><td>合同期限</td><td>contract_duration</td><td>number</td><td>LLM</td></tr>
+<tr><td>15</td><td>合同期限单位</td><td>contract_duration_unit</td><td>string</td><td>LLM</td></tr>
+<tr><td>16</td><td>合同生效日期</td><td>contract_start_date</td><td>date</td><td>LLM</td></tr>
+<tr><td>17</td><td>合同结束日期</td><td>contract_end_date</td><td>date</td><td>LLM</td></tr>
+<tr><td>18</td><td>试用期时长</td><td>probation_duration</td><td>number</td><td>LLM</td></tr>
+<tr><td>19</td><td>试用期时长单位</td><td>probation_duration_unit</td><td>string</td><td>LLM</td></tr>
+<tr><td>20</td><td>岗位名称</td><td>job_title</td><td>string</td><td>LLM</td></tr>
+<tr><td>21</td><td>税前年薪</td><td>annual_gross_salary</td><td>number</td><td>LLM</td></tr>
+<tr><td>22</td><td>税前年薪币种</td><td>annual_gross_currency</td><td>string</td><td>LLM</td></tr>
+<tr><td>23</td><td>税前月薪</td><td>monthly_gross_salary</td><td>number</td><td>LLM</td></tr>
+<tr><td>24</td><td>税前月薪币种</td><td>monthly_gross_currency</td><td>string</td><td>LLM</td></tr>
+<tr><td>25</td><td>税前时薪</td><td>hourly_gross_salary</td><td>number</td><td>LLM</td></tr>
+<tr><td>26</td><td>税前时薪币种</td><td>hourly_gross_currency</td><td>string</td><td>LLM</td></tr>
+<tr><td>27</td><td>交通补贴</td><td>transportation_allowance</td><td>number</td><td>LLM</td></tr>
+<tr><td>28</td><td>餐补</td><td>meal_allowance</td><td>number</td><td>LLM</td></tr>
+<tr><td>29</td><td>奖金</td><td>bonus</td><td>string</td><td>LLM</td></tr>
+<tr><td>30</td><td>其他补贴福利</td><td>other_allowances</td><td>string</td><td>LLM</td></tr>
+<tr><td>31</td><td>国籍</td><td>nationality</td><td>string</td><td>LLM</td></tr>
+<tr><td>32</td><td>生日</td><td>date_of_birth</td><td>date</td><td>LLM</td></tr>
+<tr><td>33</td><td>年龄</td><td>age</td><td>number</td><td>LLM</td></tr>
+<tr><td>34</td><td>婚姻状况</td><td>marital_status</td><td>string</td><td>LLM</td></tr>
+<tr><td>35</td><td>居住地址</td><td>residential_address</td><td>string</td><td>LLM</td></tr>
+<tr><td>36</td><td>身份证件类型+ID</td><td>identity_document</td><td>string</td><td>LLM</td></tr>
+<tr><td>37</td><td>电话号码</td><td>phone_number</td><td>string</td><td>LLM</td></tr>
+<tr><td>38</td><td>社保号</td><td>social_security_number</td><td>string</td><td>LLM</td></tr>
+<tr><td>39</td><td>出身地</td><td>place_of_birth</td><td>string</td><td>LLM</td></tr>
+<tr><td>40</td><td>年假天数</td><td>annual_leave_days</td><td>string</td><td>LLM</td></tr>
+<tr><td>41</td><td>病假天数</td><td>sick_leave_days</td><td>number</td><td>LLM</td></tr>
+<tr><td>42</td><td>员工开户银行名称</td><td>bank_name</td><td>string</td><td>LLM</td></tr>
+<tr><td>43</td><td>员工开户银行地址</td><td>bank_address</td><td>string</td><td>LLM</td></tr>
+<tr><td>44</td><td>员工银行账户名</td><td>bank_account_name</td><td>string</td><td>LLM</td></tr>
+<tr><td>45</td><td>员工银行账号</td><td>bank_account_number</td><td>string</td><td>LLM</td></tr>
+<tr><td>46</td><td>员工国际银行账户号码</td><td>iban</td><td>string</td><td>LLM</td></tr>
+<tr><td>47</td><td>员工银行SWIFT代码</td><td>swift_code</td><td>string</td><td>LLM</td></tr>
+</table>
+<br>
+<h3>附录 B：提取 Prompt 模板</h3>
 <br>
 <pre>
-判断以下文档属于哪一类，只输出一个单词：
-- EmploymentContract
-- SalaryAdjustment
-- Other
-文档开头部分：{...}
-</pre>
-<br>
-<ul>
-<li><b>处理结果</b> <b>：</b></li>
-<li><b>劳动合同 → 合同类别 = “劳动合同”，走完整提取流程</b></li>
-<li><b>调薪文件 → 合同类别 = “调薪文件”，走精简提取流程</b></li>
-<li><b>其他 → 跳过，标记“不处理”，并在界面列出供用户忽略或强制处理</b></li>
-</ul>
-<br>
-<h3>3.3 文本提取</h3>
-<br>
-<table>
-<tr><td>场景</td><td>处理方法</td></tr>
-<tr><td>文字型 PDF</td><td>使用 `&lt;span class="ne-text"&gt;pdf.js&lt;/span&gt;`的 `&lt;span class="ne-text"&gt;getTextContent&lt;/span&gt;`提取，保留段落结构</td></tr>
-<tr><td>扫描件/图片型 PDF</td><td>将 PDF 每一页转为图片（Electron 主进程），调用阿里云 OCR API（`&lt;span class="ne-text"&gt;RecognizePdf&lt;/span&gt;`接口），获取识别文本</td></tr>
-<tr><td>混合型 PDF</td><td>优先提取文字层，若某页无文字则对该页单独 OCR</td></tr>
-<tr><td>完全失败</td><td>标记“不可识别”，弹出提示框告知用户，工具不进行自动重试。用户自行处理后（如更换文件或手动粘贴）再继续。</td></tr>
-</table>
-<br>
- <b>OCR 配置</b> <b>：</b>
-<br>
-<ul>
-<li><b>服务商：阿里云 OCR（通用文字识别高级版）</b></li>
-<li><b>API 接入：使用 </b><code>&lt;span class="ne-text"&gt;@alicloud/ocr-api20210707&lt;/span&gt;</code> SDK</li>
-<li><b>区域：</b><code>&lt;span class="ne-text"&gt;cn-hangzhou&lt;/span&gt;</code></li>
-<li><b>并发控制：同时最多 3 个请求，避免限流</b></li>
-</ul>
-<br>
-<h3>3.4 合同编号自动生成</h3>
-<br>
-<ul>
-<li><b>来源</b> <b>：</b> <b>不依赖 PDF 内容</b> <b>，完全由工具自动生成。</b></li>
-<li><b>格式</b> <b>：</b><code>&lt;span class="ne-text"&gt;员工系统编号 + "_" + 序号&lt;/span&gt;</code></li>
-<li><b>员工系统编号：从文件名解析（第一个 </b><code>&lt;span class="ne-text"&gt;__&lt;/span&gt;</code> 左侧）</li>
-<li><b>序号：2 位数字，不足 2 位补零（</b><code>&lt;span class="ne-text"&gt;01&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;02&lt;/span&gt;</code>, ...）</li>
-<li><b>序号生成规则</b> <b>：</b></li>
-<li><b>查询本地历史记录中</b><b>同一员工</b>的最大序号，在此基础上 +1</li>
-<li><b>若无历史记录（该员工第一份文件），序号从 </b><code>&lt;span class="ne-text"&gt;01&lt;/span&gt;</code> 开始</li>
-<li><b>若用户删除某条记录后重新导入该文件，序号仍取当前历史中的最大序号 +1（不填补已删除的序号空缺）</b></li>
-<li><b>示例</b> <b>：</b></li>
-<li><b>员工编号：</b><code>&lt;span class="ne-text"&gt;CE3E5PLL&lt;/span&gt;</code></li>
-<li><b>已有合同：</b><code>&lt;span class="ne-text"&gt;CE3E5PLL_01&lt;/span&gt;</code>、<code>&lt;span class="ne-text"&gt;CE3E5PLL_02&lt;/span&gt;</code>（假设 <code>&lt;span class="ne-text"&gt;_02&lt;/span&gt;</code> 被删除）</li>
-<li><b>新合同自动生成：</b><code>&lt;span class="ne-text"&gt;CE3E5PLL_03&lt;/span&gt;</code>（而不是 <code>&lt;span class="ne-text"&gt;_02&lt;/span&gt;</code>）</li>
-<li><b>注意事项</b> <b>：</b></li>
-<li><b>如果用户同时导入多个同一员工的文件，按文件导入顺序依次分配序号（先 </b><code>&lt;span class="ne-text"&gt;_01&lt;/span&gt;</code>，后 <code>&lt;span class="ne-text"&gt;_02&lt;/span&gt;</code>）。</li>
-</ul>
-<br>
-<h3>3.5 合同类别</h3>
-<br>
-<ul>
-<li><b>字段位置</b> <b>：紧跟在“合同编号”之后。</b></li>
-<li><b>取值</b> <b>：</b><code>&lt;span class="ne-text"&gt;劳动合同&lt;/span&gt;</code> 或 <code>&lt;span class="ne-text"&gt;调薪文件&lt;/span&gt;</code>（取自 3.2 的文件类型识别结果）。</li>
-<li><b>用途</b> <b>：决定后续使用哪一套 Prompt 模板和字段集合。</b></li>
-</ul>
-<br>
-<h3>3.6 信息提取（大模型）</h3>
-<br>
-<h4>3.6.1 劳动合同提取字段（43 个）</h4>
-<br>
-<b>详见附录 A。字段定义包含：</b>
-<br>
-<ul>
-<li><b>基础信息：法定姓名、性别、国籍、生日、年龄、婚姻状况、出身地</b></li>
-<li><b>雇佣信息：雇主名称、就职国家/地区、岗位名称、入职时间、合同类型</b></li>
-<li><b>薪酬：税前年薪/月薪及币种、交通补贴、餐补、奖金、其他补贴</b></li>
-<li><b>合同期限：合同生效/结束日期、试用期</b></li>
-<li><b>休假：年假天数、病假天数</b></li>
-<li><b>银行信息：银行名称、地址、账户名、账号、IBAN、SWIFT</b></li>
-<li><b>联系方式：个人邮箱、工作邮箱、电话号码、居住地址、身份证件、社保号</b></li>
-</ul>
-<br>
- <b>注意</b> <b>：合同编号、合同类别、员工系统编号不由大模型提取，由工具自动生成。</b>
-<br>
-<h4>3.6.2 调薪文件提取字段</h4>
-<br>
-调薪文件与劳动合同使用相同的 42 字段 Prompt（见附录 A）。调薪文件通常包含薪酬、补贴、银行信息等变更内容，LLM 自动提取原文中存在的字段，缺失字段值为 null。导出 Excel 时所有列均参与填充，无需用户手动补充。
-<br>
-<h4>3.6.3 日期字段提取口径（重要）</h4>
-<br>
-<ul>
-<li><b>入职时间（start_date）</b> <b>：</b></li>
-<li><b>优先提取合同中明确标注为 </b><code>&lt;span class="ne-text"&gt;Start Date&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;Commencement Date&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;Date of Employment&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;入职日期&lt;/span&gt;</code> 等字段的值。</li>
-<li><b>若没有明确标注，则</b> <b>默认为合同生效日期</b> <b>（如果有）。</b></li>
-<li><b>若两者都没有，则为 </b><code>&lt;span class="ne-text"&gt;null&lt;/span&gt;</code>。</li>
-<li><b>合同生效日期（contract_start_date）</b> <b>：</b></li>
-<li><b>优先提取合同中明确标注为 </b><code>&lt;span class="ne-text"&gt;Effective Date&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;Contract Effective Date&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;本合同生效日期&lt;/span&gt;</code> 等字段的值。</li>
-<li><b>若没有明确标注，则</b> <b>默认为签署日期（Signature Date）</b> <b>。</b></li>
-<li><b>若都没有，则为 </b><code>&lt;span class="ne-text"&gt;null&lt;/span&gt;</code>。</li>
-</ul>
-<br>
-<h4>3.6.4 大模型调用要求</h4>
-<br>
-<ul>
-<li><b>API</b> <b>：DeepSeek 或 智谱 AI（用户可配置）</b></li>
-<li><b>Prompt 模板</b> <b>：见附录 B（劳动合同）和附录 C（调薪文件）</b></li>
-<li><b>输出格式</b> <b>：纯 JSON，缺失字段输出 </b><code>&lt;span class="ne-text"&gt;null&lt;/span&gt;</code>（不加引号，如 <code>&lt;span class="ne-text"&gt;"annual_gross_salary": null&lt;/span&gt;</code>）</li>
-<li><b>重试机制</b> <b>：单次调用失败重试 2 次，间隔 2 秒</b></li>
-<li><b>并发控制</b> <b>：串行处理每个文件，避免超出 token 限制</b></li>
-</ul>
-<br>
-<h3>3.7 后处理校验</h3>
-<br>
-<b>对每个提取出的字段值进行格式验证，不符合规则的字段自动标记，展示时高亮提示。</b>
-<br>
-<table>
-<tr><td>字段类型</td><td>校验规则</td><td>标记内容</td></tr>
-<tr><td>邮箱</td><td>正则 `&lt;span class="ne-text"&gt;^[^\s@]+@([^\s@]+\.)+[^\s@]+$&lt;/span&gt;`</td><td>`&lt;span class="ne-text"&gt;"待核对邮箱"&lt;/span&gt;`</td></tr>
-<tr><td>日期</td><td>能成功解析 `&lt;span class="ne-text"&gt;YYYY-MM-DD&lt;/span&gt;`，且范围合理（1900-2100）</td><td>`&lt;span class="ne-text"&gt;"日期格式异常"&lt;/span&gt;`</td></tr>
-<tr><td>电话号码</td><td>去除空格、`&lt;span class="ne-text"&gt;+&lt;/span&gt;`、`&lt;span class="ne-text"&gt;-&lt;/span&gt;`、`&lt;span class="ne-text"&gt;(&lt;/span&gt;``&lt;span class="ne-text"&gt;)&lt;/span&gt;`后，数字长度 ≥ 8</td><td>`&lt;span class="ne-text"&gt;"电话格式可疑"&lt;/span&gt;`</td></tr>
-<tr><td>金额数字</td><td>只允许数字和一个小数点，不能有字母或货币符号</td><td>`&lt;span class="ne-text"&gt;"金额待清理"&lt;/span&gt;`</td></tr>
-<tr><td>年龄</td><td>0-120 之间的整数</td><td>`&lt;span class="ne-text"&gt;"年龄超出范围"&lt;/span&gt;`</td></tr>
-</table>
-<br>
-<b>校验结果不修改原始提取值，只在 UI 上增加警告图标，并在导出时增加一列“校验状态”。</b>
-<br>
-<h3>3.8 人工校对界面</h3>
-<br>
-<ul>
-<li><b>左右布局</b> <b>：左侧展示原始合同文本（或 OCR 识别文本），右侧展示提取出的字段表格（可编辑）。</b></li>
-<li><b>表格功能</b> <b>：</b></li>
-<li><b>每行显示：字段名、提取值、校验状态、人工修正值</b></li>
-<li><b>支持直接修改单元格内容</b></li>
-<li><b>修改后自动保存到本地</b></li>
-<li><b>高亮定位</b> <b>：点击任意字段值，左侧文本区域自动滚动并高亮显示该关键词出现的位置（模糊匹配）。</b></li>
-<li><b>批量操作</b> <b>：支持标记“已验证”、批量导出。</b></li>
-</ul>
-<br>
-<h3>3.9 导出功能</h3>
-<br>
-<ul>
-<li><b>格式</b> <b>：Excel (.xlsx)</b></li>
-<li><b>模板</b> <b>：46 列（3 列系统生成 + 42 列大模型提取）。劳动合同和调薪文件统一使用 42 字段 Prompt，LLM 自动提取原文中存在的字段，缺失字段值为 null。</b></li>
-<li><b>空值处理</b> <b>：大模型输出 </b><code>&lt;span class="ne-text"&gt;null&lt;/span&gt;</code> 时，导出为 <b>空白单元格</b> <b>（不显示 "null" 字符串）；数字类型字段若为 null，也是空白单元格（不是 0）。</b></li>
-<li><b>导出范围</b> <b>：当前选中的文件或全部已处理文件。</b></li>
-<li><b>文件命名</b> <b>：</b><code>&lt;span class="ne-text"&gt;合同提取结果_年月日时分秒.xlsx&lt;/span&gt;</code></li>
-</ul>
-<br>
-<h3>3.10 配置管理</h3>
-<br>
-<ul>
-<li><b>API 选择</b> <b>：DeepSeek / 智谱 AI</b></li>
-<li><b>API Key</b> <b>：加密存储到本地（</b><code>&lt;span class="ne-text"&gt;electron-store&lt;/span&gt;</code>）</li>
-<li><b>模型名称</b> <b>：可自定义（如 </b><code>&lt;span class="ne-text"&gt;deepseek-chat&lt;/span&gt;</code>, <code>&lt;span class="ne-text"&gt;glm-4&lt;/span&gt;</code>）</li>
-<li><b>OCR AccessKey/Secret</b> <b>：存储在本地，可测试连接</b></li>
-<li><b>输出语言偏好</b> <b>：默认“优先英文，无则原文”</b></li>
-</ul>
-<br>
----
-<br>
-<h2>4. 异常处理与边界情况</h2>
-<br>
-<table>
-<tr><td>异常场景</td><td>处理方式</td></tr>
-<tr><td>文件非 PDF 格式</td><td>提示不支持，跳过</td></tr>
-<tr><td>PDF 已加密</td><td>尝试空密码解锁，失败则要求用户提供密码</td></tr>
-<tr><td>网络中断</td><td>自动暂停，恢复后续传</td></tr>
-<tr><td>大模型 API 返回非 JSON</td><td>重试一次，仍失败则显示原始输出，允许用户手动纠正</td></tr>
-<tr><td>OCR 额度不足</td><td>提示用户购买资源包或切换账号</td></tr>
-<tr><td>文件名中无 `&lt;span class="ne-text"&gt;__&lt;/span&gt;`</td><td>回退到取前 8 字符（实际不会发生）</td></tr>
-<tr><td>同一文件重复导入</td><td>根据文件 MD5 去重，提示“已处理过”</td></tr>
-<tr><td>历史记录中同一员工最大序号异常</td><td>强制从 01 开始，并记录警告日志</td></tr>
-<tr><td>调薪文件导出时未提取字段</td><td>使用 42 字段全量提取，自动填充</td></tr>
-</table>
-<br>
----
-<br>
-<h2>5. 非功能需求</h2>
-<br>
-<h3>5.1 性能要求</h3>
-<br>
-<ul>
-<li><b>单个文件从导入到展示提取结果（含 OCR+大模型）平均 ≤ 20 秒</b></li>
-<li><b>批量处理 10 个文件时，界面不卡顿，支持取消操作</b></li>
-<li><b>OCR 并发限制 3 个，大模型串行</b></li>
-</ul>
-<br>
-<h3>5.2 数据安全</h3>
-<br>
-<ul>
-<li><b>所有 API Key、OCR 凭证仅存储在本地，不上传任何服务器</b></li>
-<li><b>合同文件内容不离开用户电脑（除调用 API 外，不保存到第三方）</b></li>
-<li><b>日志中不记录敏感字段（如身份证号、银行账号）</b></li>
-</ul>
-<br>
-<h3>5.3 兼容性</h3>
-<br>
-<ul>
-<li><b>操作系统：Windows 10/11, macOS 11+</b></li>
-<li><b>屏幕分辨率：最小 1366×768，推荐 1920×1080</b></li>
-<li><b>无网络时仍可打开工具查看历史记录，但无法进行新文件处理</b></li>
-</ul>
-<br>
-<h3>5.4 可维护性</h3>
-<br>
-<ul>
-<li><b>代码模块化：文件解析、OCR、大模型调用、校验、UI 相互解耦</b></li>
-<li><b>字段配置化：字段列表、校验规则可热更新（JSON 配置文件）</b></li>
-<li><b>日志记录：所有 API 请求响应、错误信息保存到本地文件，便于排查</b></li>
-</ul>
-<br>
----
-<br>
-<h2>6. 附录</h2>
-<br>
-<h3>附录 A：劳动合同 46 列完整列表（3 系统生成 + 43 大模型提取）</h3>
-<br>
-<table>
-<tr><td>序号</td><td>中文字段名</td><td>英文字段名</td><td>类型</td><td>输出格式/示例</td><td>来源</td></tr>
-<tr><td>1</td><td>员工系统编号</td><td>employee_id</td><td>string</td><td>CE3E5PLL</td><td>文件名解析</td></tr>
-<tr><td>2</td><td>合同编号</td><td>contract_number</td><td>string</td><td>CE3E5PLL_01</td><td>自动生成</td></tr>
-<tr><td>3</td><td>合同类别</td><td>contract_type</td><td>string</td><td>劳动合同 / 调薪文件</td><td>文件类型识别</td></tr>
-<tr><td>4</td><td>是否双签版合同</td><td>is_signed_both</td><td>string</td><td>是/否</td><td>大模型</td></tr>
-<tr><td>5</td><td>法定姓名</td><td>full_name</td><td>string</td><td>John Doe / สมชาย</td><td>大模型</td></tr>
-<tr><td>6</td><td>就职国家/地区</td><td>employment_country</td><td>string</td><td>Thailand</td><td>大模型</td></tr>
-<tr><td>7</td><td>雇主名称</td><td>employer_name</td><td>string</td><td>ABC Company Ltd.</td><td>大模型</td></tr>
-<tr><td>8</td><td>性别</td><td>gender</td><td>string</td><td>男/女/未知</td><td>大模型</td></tr>
-<tr><td>9</td><td>个人邮箱</td><td>personal_email</td><td>string</td><td>user@gmail.com</td><td>大模型</td></tr>
-<tr><td>10</td><td>工作邮箱</td><td>work_email</td><td>string</td><td>user@company.com</td><td>大模型</td></tr>
-<tr><td>11</td><td>入职时间</td><td>start_date</td><td>date</td><td>2024-01-01</td><td>大模型</td></tr>
-<tr><td>12</td><td>合同期限类型</td><td>contract_term_type</td><td>string</td><td>有固定期限 / 无固定期限</td><td>大模型</td></tr>
-<tr><td>13</td><td>合同期限</td><td>contract_duration</td><td>number</td><td>24</td><td>大模型</td></tr>
-<tr><td>14</td><td>合同期限单位</td><td>contract_duration_unit</td><td>string</td><td>月</td><td>大模型</td></tr>
-<tr><td>15</td><td>合同生效日期</td><td>contract_start_date</td><td>date</td><td>2024-01-01</td><td>大模型</td></tr>
-<tr><td>16</td><td>合同结束日期</td><td>contract_end_date</td><td>date</td><td>2026-01-01</td><td>大模型</td></tr>
-<tr><td>17</td><td>试用期时长</td><td>probation_duration</td><td>number</td><td>3</td><td>大模型</td></tr>
-<tr><td>18</td><td>试用期时长单位</td><td>probation_duration_unit</td><td>string</td><td>月</td><td>大模型</td></tr>
-<tr><td>19</td><td>岗位名称</td><td>job_title</td><td>string</td><td>Software Engineer</td><td>大模型</td></tr>
-<tr><td>20</td><td>税前年薪</td><td>annual_gross_salary</td><td>number</td><td>5000000</td><td>大模型</td></tr>
-<tr><td>21</td><td>税前年薪币种</td><td>annual_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
-<tr><td>22</td><td>税前月薪</td><td>monthly_gross_salary</td><td>number</td><td>416666</td><td>大模型</td></tr>
-<tr><td>23</td><td>税前月薪币种</td><td>monthly_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
-<tr><td>24</td><td>税前时薪</td><td>hourly_gross_salary</td><td>number</td><td>500</td><td>大模型</td></tr>
-<tr><td>25</td><td>税前时薪币种</td><td>hourly_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
-<tr><td>26</td><td>交通补贴</td><td>transportation_allowance</td><td>number/null</td><td>1000</td><td>大模型</td></tr>
-<tr><td>27</td><td>餐补</td><td>meal_allowance</td><td>number/null</td><td>500</td><td>大模型</td></tr>
-<tr><td>28</td><td>奖金</td><td>bonus</td><td>string</td><td>13th month salary</td><td>大模型</td></tr>
-<tr><td>29</td><td>其他补贴福利</td><td>other_allowances</td><td>string</td><td>housing allowance</td><td>大模型</td></tr>
-<tr><td>30</td><td>国籍</td><td>nationality</td><td>string</td><td>Thai</td><td>大模型</td></tr>
-<tr><td>31</td><td>生日</td><td>date_of_birth</td><td>date</td><td>1990-05-12</td><td>大模型</td></tr>
-<tr><td>32</td><td>年龄</td><td>age</td><td>number</td><td>34</td><td>大模型</td></tr>
-<tr><td>33</td><td>婚姻状况</td><td>marital_status</td><td>string</td><td>已婚</td><td>大模型</td></tr>
-<tr><td>34</td><td>居住地址</td><td>residential_address</td><td>string</td><td>123 Sukhumvit Rd.</td><td>大模型</td></tr>
-<tr><td>35</td><td>身份证件类型+ID</td><td>identity_document</td><td>string</td><td>Passport: G12345678</td><td>大模型</td></tr>
-<tr><td>36</td><td>电话号码</td><td>phone_number</td><td>string</td><td>+66 81 234 5678</td><td>大模型</td></tr>
-<tr><td>37</td><td>社保号</td><td>social_security_number</td><td>string</td><td>1-2345-67890</td><td>大模型</td></tr>
-<tr><td>38</td><td>出身地</td><td>place_of_birth</td><td>string</td><td>Bangkok, Thailand</td><td>大模型</td></tr>
-<tr><td>39</td><td>年假天数</td><td>annual_leave_days</td><td>string</td><td>15</td><td>大模型</td></tr>
-<tr><td>40</td><td>病假天数</td><td>sick_leave_days</td><td>number</td><td>10</td><td>大模型</td></tr>
-<tr><td>41</td><td>员工开户银行名称</td><td>bank_name</td><td>string</td><td>Bangkok Bank</td><td>大模型</td></tr>
-<tr><td>42</td><td>员工开户银行地址</td><td>bank_address</td><td>string</td><td>999 Silom Road</td><td>大模型</td></tr>
-<tr><td>43</td><td>员工银行账户名</td><td>bank_account_name</td><td>string</td><td>John Doe</td><td>大模型</td></tr>
-<tr><td>44</td><td>员工银行账号</td><td>bank_account_number</td><td>string</td><td>123-4-56789-0</td><td>大模型</td></tr>
-<tr><td>45</td><td>员工国际银行账户号码</td><td>iban</td><td>string/null</td><td>TH1234567890</td><td>大模型</td></tr>
-<tr><td>46</td><td>员工银行 SWIFT 代码</td><td>swift_code</td><td>string/null</td><td>BKKBTHBK</td><td>大模型</td></tr>
-</table>
-<br>
-<h3>附录 B：劳动合同提取 Prompt 模板（43 个字段）</h3>
-<br>
-<pre>
-你是一位专业的HR合同信息提取专家。请从以下OCR识别的合同文本中，严格按照要求提取字段。
-只输出一个JSON，不要包含任何其他解释、说明或Markdown标记。
-严格约束：不得编造任何信息。若字段在原文中完全没有提及，值设为 null。
+你是一位专业的HR合同信息提取专家。请从以下合同文本中提取字段。
+只输出一个 JSON，不要包含任何其他解释或 Markdown 标记。
+若字段在原文中完全没有提及，值设为 null。
 
-注意：合同编号、合同类别、员工系统编号不需要提取，已由系统自动生成。
+注意：合同编号、合同类别、员工系统编号已由系统自动生成，不需要提取。
 
-待提取字段列表（共42个字段）：
-
+字段列表（43 个）：
 {
-  "is_signed_both": "",                 // 是否双签版合同：是/否
-  "full_name": "",                      // 法定姓名，优先输出英文；若无英文则使用原文语种
-  "employment_country": "",             // 就职国家/地区，英文
-  "employer_name": "",                  // 雇主名称（公司全称）
-  "gender": "",                         // 性别：男/女
-  "personal_email": "",                 // 个人邮箱（小写）
-  "work_email": "",                     // 工作邮箱（小写）
-  "start_date": "",                     // 入职时间，格式 YYYY-MM-DD。优先找"Start Date"/"Commencement Date"/"Date of Employment"/"入职日期"，若无则默认为合同生效日期
-  "contract_term_type": "",             // 合同期限类型：有固定期限 / 无固定期限
-  "contract_duration": "",              // 合同期限数字部分（不含单位）
-  "contract_duration_unit": "",         // 合同期限单位：年/月/日/周
-  "contract_start_date": "",            // 合同生效日期，格式 YYYY-MM-DD。优先找"Effective Date"/"Contract Effective Date"/"本合同生效日期"，若无则默认为签署日期(Signature Date)
-  "contract_end_date": "",              // 合同结束日期
-  "probation_duration": "",             // 试用期时长数字
-  "probation_duration_unit": "",        // 试用期时长单位
-  "job_title": "",                      // 岗位名称
-  "annual_gross_salary": "",            // 税前年薪数字
-  "annual_gross_currency": "",          // 税前年薪币种（使用原文货币写法，如THB, USD）
-  "monthly_gross_salary": "",           // 税前月薪数字
-  "monthly_gross_currency": "",         // 税前月薪币种
-  "hourly_gross_salary": "",            // 税前时薪数字
-  "hourly_gross_currency": "",          // 税前时薪币种
-  "transportation_allowance": "",       // 交通补贴（数字，无则null）
-  "meal_allowance": "",                 // 餐补（数字，无则null）
-  "bonus": "",                          // 奖金（优先数字，无则短描述）
-  "other_allowances": "",               // 其他补贴福利（字符串）
-  "nationality": "",                    // 国籍
-  "date_of_birth": "",                  // 生日 YYYY-MM-DD
-  "age": "",                            // 年龄（整数，无则基于生日计算）
-  "marital_status": "",                 // 婚姻状况
-  "residential_address": "",            // 居住地址
-  "identity_document": "",              // 身份证件类型+ID，格式如 "Passport: G12345678"
-  "phone_number": "",                   // 电话号码（尽量保留国际格式）
-  "social_security_number": "",         // 社保号
-  "place_of_birth": "",                 // 出身地
-  "annual_leave_days": "",              // 年假天数，可能是 12 天 3 小时这种，保留原始信息
-  "sick_leave_days": "",                // 病假天数
-  "bank_name": "",                      // 员工开户银行名称
-  "bank_address": "",                   // 员工开户银行地址
-  "bank_account_name": "",              // 员工银行账户名
-  "bank_account_number": "",            // 员工银行账号
-  "iban": "",                           // 国际银行账户号码
-  "swift_code": ""                      // SWIFT代码
+  "is_signed_both": "",
+  "full_name": "",
+  "employment_country": "",
+  "employer_name": "",
+  "gender": "",
+  "personal_email": "",
+  "work_email": "",
+  "start_date": "",
+  "contract_term_type": "",
+  "contract_duration": "",
+  "contract_duration_unit": "",
+  "contract_start_date": "",
+  "contract_end_date": "",
+  "probation_duration": "",
+  "probation_duration_unit": "",
+  "job_title": "",
+  "annual_gross_salary": "",
+  "annual_gross_currency": "",
+  "monthly_gross_salary": "",
+  "monthly_gross_currency": "",
+  "hourly_gross_salary": "",
+  "hourly_gross_currency": "",
+  "transportation_allowance": "",
+  "meal_allowance": "",
+  "bonus": "",
+  "other_allowances": "",
+  "nationality": "",
+  "date_of_birth": "",
+  "age": "",
+  "marital_status": "",
+  "residential_address": "",
+  "identity_document": "",
+  "phone_number": "",
+  "social_security_number": "",
+  "place_of_birth": "",
+  "annual_leave_days": "",
+  "sick_leave_days": "",
+  "bank_name": "",
+  "bank_address": "",
+  "bank_account_name": "",
+  "bank_account_number": "",
+  "iban": "",
+  "swift_code": ""
 }
 
-提取规则：
-- 日期统一转换为 YYYY-MM-DD 格式。
-- 金额只保留纯数字，不带任何符号和空格（如 "50000.00"）。
-- 数字字段只保留整数或小数，不保留单位。
-- currency字段使用合同中实际出现的货币代码或货币缩写（大写）。
-- 多语言输出原则：原文是英文，信息按英文输出；原文是英文+外文，如果有英文版则输出英文；只有外文则输出外文。严格按照原文中的写法输出，不要翻译、不要转换字母大小写。
-- 仅输出纯JSON，不要包裹在代码块中。
+规则：
+- 日期统一 YYYY-MM-DD
+- 金额只保留纯数字
+- currency 使用原文货币代码
+- 多语言优先英文，无则原文
+- contract_start_date 找不到时取签名日期
+- gender 只能为 男/女/未知
+- contract_term_type 只能为 有固定期限/无固定期限
 
 合同原文：
 """
-{OCR识别出的合同原文}
+{text}
 """
 </pre>
 <br>
-<h3>附录 C：调薪文件提取（已合并至附录 B）</h3>
-<br>
-调薪文件现与劳动合同统一使用附录 B 的 42 字段 Prompt，不再维护独立的调薪 Prompt。LLM 自动从原文中提取所有存在的字段。
-<br>
-<h3>附录 D：文件类型快速分类 Prompt</h3>
+<h3>附录 C：文件分类 Prompt</h3>
 <br>
 <pre>
-判断以下文档属于哪一类，只输出一个单词：
+判断文档类别，只输出一个单词：
 - EmploymentContract（劳动合同）
 - SalaryAdjustment（调薪文件）
 - Other（其他）
 
-文档开头部分（前2000字符）：
+文档开头：
 """
-{文本}
+{text}
 """
 </pre>
 <br>
 ---
 <br>
-<h2>7. 版本规划</h2>
+<h2>7. 迭代记录</h2>
 <br>
 <table>
-<tr><td>版本</td><td>功能范围</td><td>预计时间</td></tr>
-<tr><td>V1.0（MVP）</td><td>支持劳动合同完整提取、OCR集成、人工校对、Excel导出</td><td>2 周</td></tr>
-<tr><td>V1.1</td><td>调薪文件支持、批量处理优化、后处理校验</td><td>1 周</td></tr>
-<tr><td>V1.2</td><td>多员工历史记录管理、合同编号自动递增（删除后不填补）、模糊搜索高亮</td><td>1 周</td></tr>
-<tr><td>V2.0</td><td>支持其他文件类型（保密协议、offer等），自定义字段模板</td><td>待定</td></tr>
+<tr><td>版本</td><td>日期</td><td>主要内容</td></tr>
+<tr><td>V1.0</td><td>—</td><td>MVP：劳动合同提取、OCR、校对、Excel 导出</td></tr>
+<tr><td>V1.1</td><td>—</td><td>调薪文件、批量处理优化、后处理校验</td></tr>
+<tr><td>V1.2</td><td>—</td><td>历史记录管理、合同编号递增</td></tr>
+<tr><td>V1.3</td><td>06-15</td><td>税前时薪字段、统一 Prompt、原件审查、加密密码、并发处理、失败重试</td></tr>
+<tr><td>V1.4</td><td>06-15</td><td>PDF Canvas 渲染校对、字段智能高亮、单文件重提、生效日期补漏</td></tr>
+<tr><td>V1.5</td><td>06-15</td><td>校对入口 PDF 自动加载、OCR SDK 修复、坐标修正</td></tr>
+<tr><td>V1.6</td><td>06-15</td><td>翻译辅助核对、callLlmRaw、移除 openai SDK、布局优化</td></tr>
+<tr><td>V1.7</td><td>06-18</td><td>OCR 全面调用、ocr_failed 状态、导出增强、清理重复、合同期限类型、性别未知、LLM 改用原生 https.request</td></tr>
 </table>
 <br>
 ---
 <br>
-<h2>8. 迭代记录</h2>
-<br>
-<h3>V1.3（2026-06-15）</h3>
-<br>
-<h4>新增功能</h4>
-<table>
-<tr><td>功能</td><td>说明</td></tr>
-<tr><td>税前时薪字段</td><td>新增 `hourly_gross_salary`（税前时薪）、`hourly_gross_currency`（税前时薪币种），字段总数从 43 增至 45</td></tr>
-<tr><td>统一 Prompt</td><td>劳动合同与调薪文件共用 42 字段 Prompt（LLM 自行从原文提取存在的字段），删除调薪专用 Prompt</td></tr>
-<tr><td>原件审查</td><td>文件列表新增"原件"按钮，点击用系统默认 PDF 阅读器打开原始合同文件</td></tr>
-<tr><td>阿里云 OCR</td><td>对接阿里云 `RecognizeMultiLanguage` API，支持扫描件/图片型 PDF 的文字识别</td></tr>
-<tr><td>加密 PDF 密码输入</td><td>检测到加密 PDF 时弹出密码输入框，支持用户输入密码后解密处理</td></tr>
-<tr><td>配置测试连接</td><td>设置页面的"测试连接"按钮改为真实调用 LLM/OCR 服务</td></tr>
-</table>
-<br>
-<h4>代码优化</h4>
-<table>
-<tr><td>优化</td><td>说明</td></tr>
-<tr><td>并发处理</td><td>集成 `ConcurrencyLimiter`，最多 3 个文件并行处理，提升批量速度</td></tr>
-<tr><td>处理状态跟踪</td><td>`process:status` 从硬编码改为返回真实处理状态</td></tr>
-<tr><td>失败重试</td><td>非永久错误（网络、超时等）自动重试 1 次，间隔 3 秒</td></tr>
-<tr><td>数据库截断</td><td>`original_text` 限制最大 100KB，防止 SQLite 数据库过度膨胀</td></tr>
-<tr><td>死代码清理</td><td>清理 `pdfToImage.ts`（阿里云 API 直接接受 PDF，无需逐页渲染）</td></tr>
-</table>
-<br>
-<h3>V1.4（2026-06-15）</h3>
-<br>
-<h4>新增功能</h4>
-<table>
-<tr><td>功能</td><td>说明</td></tr>
-<tr><td>PDF 原版查看</td><td>校对面板左侧改为 pdfjs-dist Canvas 渲染，支持上下滑动翻页，保留原始排版</td></tr>
-<tr><td>字段智能高亮</td><td>点击右侧字段值 → 左侧 PDF 自动高亮匹配文本（黄色半透明），支持日期/金额/电话/姓名的多格式变体搜索</td></tr>
-<tr><td>单文件重新提取</td><td>校对面板新增"重新提取"按钮，可用最新 Prompt 对单个文件重新提取字段</td></tr>
-<tr><td>合同生效日期补漏</td><td>若主提取未命中 `contract_start_date`，自动追加针对性 LLM 追问（补提生效日期）</td></tr>
-<tr><td>加密 PDF 密码弹窗</td><td>检测到加密 PDF 时弹出密码输入 Modal，支持用户输入密码解密</td></tr>
-<tr><td>原件审查按钮</td><td>文件列表新增"原件"按钮，用系统 PDF 阅读器打开原始合同</td></tr>
-<tr><td>字段增至 46 列</td><td>新增 `hourly_gross_salary`（税前时薪）、`hourly_gross_currency`（税前时薪币种）</td></tr>
-<tr><td>统一 Prompt</td><td>劳动合同与调薪文件共用 42 字段 Prompt（删除调薪专用 Prompt）</td></tr>
-<tr><td>阿里云 OCR</td><td>对接 `RecognizeMultiLanguage` API，支持扫描件 PDF 识别</td></tr>
-</table>
-<br>
-<h4>优化</h4>
-<table>
-<tr><td>优化</td><td>说明</td></tr>
-<tr><td>并发处理</td><td>`ConcurrencyLimiter` 集成，最多 3 文件并行</td></tr>
-<tr><td>处理状态实时</td><td>`process:status` 返回真实状态</td></tr>
-<tr><td>失败重试</td><td>非永久错误自动重试 1 次</td></tr>
-<tr><td>智能搜索高亮</td><td>日期/金额/电话/邮箱/姓名自动生成多格式变体搜索</td></tr>
-<tr><td>数据库截断</td><td>`original_text` 限制 100KB</td></tr>
-<tr><td>代码清理</td><td>移除 4 个未使用的 import，清理 `pdfToImage.ts` 死代码、旧调薪 prompt</td></tr>
-</table>
-<br>
-<h3>V1.5（2026-06-15）</h3>
-<br>
-<table>
-<tr><td>功能</td><td>说明</td></tr>
-<tr><td>校对入口 PDF 自动加载</td><td>从文件管理点"校对"进入，PDF 自动渲染，无需再选文件</td></tr>
-<tr><td>重新提取按钮</td><td>校对页新增"重提"按钮，文件名过长自动截断，按钮不被挤压</td></tr>
-<tr><td>智能高亮坐标修正</td><td>修复 PDF Y 轴翻转导致的定位偏差，高亮精准匹配文字</td></tr>
-<tr><td>OCR SDK 兼容</td><td>修复阿里云 OCR SDK 打包后 `default` export 解析失败的问题</td></tr>
-<tr><td>合同生效日期强化</td><td>Prompt 详细指引 + 二次补漏追问，大幅提升调薪文件日期提取率</td></tr>
-<tr><td>使用说明书</td><td>新增完整操作手册，面向终端用户</td></tr>
-</table>
-<br>
-<h3>V1.6（2026-06-15）</h3>
-<br>
-<table>
-<tr><td>功能</td><td>说明</td></tr>
-<tr><td>翻译辅助核对</td><td>校对面板新增"翻译"按钮，调用 LLM 将合同原文翻译为中文，支持 PDF 原版/中文翻译视图切换，翻译结果缓存数据库不重复调用</td></tr>
-<tr><td>callLlmRaw</td><td>新增原始文本 LLM 调用函数，不强制 JSON 解析，用于翻译等自由文本场景</td></tr>
-<tr><td>校对面板布局优化</td><td>文件名超长自动截断、按钮改为图标无文字模式，确保多按钮不挤压</td></tr>
-</table>
-<br>
-<h3>V1.7（2026-06-17）</h3>
-<br>
-<table>
-<tr><td>功能</td><td>说明</td></tr>
-<tr><td>OCR 全面调用</td><td>OCR 配置后所有 PDF 直接走 OCR，不再判断文字层质量；OCR 失败回退 pdfjs，标记 `ocr_failed` 橙色状态</td></tr>
-<tr><td>分类不再跳过</td><td>无法识别类型的文件默认按劳动合同处理，不再标记"已跳过"</td></tr>
-<tr><td>Excel 导出增强</td><td>新增"导出失败"按钮、文件名称列、合同编号推算、错误信息列</td></tr>
-<tr><td>清理重复文件</td><td>文件管理新增"清理重复"按钮，按 MD5 去重，保留提取字段最多的记录</td></tr>
-<tr><td>文件列表排序</td><td>改为按员工编号升序排列，与员工序号表 CSV 对应</td></tr>
-<tr><td>合同期限类型</td><td>新增 `contract_term_type` 字段（有固定期限/无固定期限），总计 46 列</td></tr>
-<tr><td>性别支持未知</td><td>性别字段新增"未知"选项，无法判断时填入</td></tr>
-<tr><td>LLM 原生 fetch</td><td>移除 `openai` SDK，改用 Node.js 原生 `fetch()` 调 DeepSeek/智谱 API</td></tr>
-<tr><td>canvas 桥接</td><td>pdfjs-dist → @napi-rs/canvas 桥接，PDF 逐页转 PNG 送 OCR</td></tr>
-<tr><td>代码清理</td><td>移除 11 处冗余代码（未使用函数/import）</td></tr>
-</table>
-<br>
----
-<br>
- <b>文档状态</b> <b>：已定稿，可进入开发。</b>
+<b>文档状态</b>：已定稿
 <br>
 <div style="page-break-before:always"></div>
 <h1>合同智能提取工具 — 使用说明</h1>
