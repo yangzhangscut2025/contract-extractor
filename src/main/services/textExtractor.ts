@@ -49,17 +49,6 @@ export async function extractTextPerPage(pdfPath: string): Promise<PageText[]> {
 }
 
 /**
- * Check if the entire PDF needs OCR (all pages have insufficient text).
- */
-export function needsFullOcr(pages: PageText[]): boolean {
-  if (pages.length === 0) return true
-  const totalChars = pages.reduce((sum, p) => sum + p.charCount, 0)
-  // Require at least 200 meaningful chars across all pages
-  // (50 was too low — scanned PDFs with page numbers/watermarks could pass)
-  return totalChars < 200
-}
-
-/**
  * Combine all page texts into a single string.
  */
 export function combinePageTexts(pages: PageText[]): string {

@@ -1,11 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Typography, Select, Button, Space, Input, Empty, message } from 'antd'
+import { Select, Button, Input, Empty, message } from 'antd'
 import { SearchOutlined, ReloadOutlined, TranslationOutlined } from '@ant-design/icons'
 import { useAppStore } from '../../store/appStore'
 import { FieldTable } from './FieldTable'
 import { PdfViewer } from './PdfViewer'
-
-const { Title } = Typography
 
 export function ReviewPanel(): JSX.Element {
   const files = useAppStore((s) => s.files)
@@ -20,7 +18,8 @@ export function ReviewPanel(): JSX.Element {
   const [translatedText, setTranslatedText] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
 
-  const completedFiles = files.filter((f) => f.status === 'completed')
+  // Show all files except those still processing
+  const reviewableFiles = files.filter((f) => f.status !== 'processing')
 
   // Load PDF when currentFileId changes (from file list or dropdown)
   useEffect(() => {
@@ -118,7 +117,7 @@ export function ReviewPanel(): JSX.Element {
             placeholder="选择文件"
             value={currentFileId || undefined}
             onChange={handleFileSelect}
-            options={completedFiles.map((f) => ({
+            options={reviewableFiles.map((f) => ({
               label: f.file_name.length > 40
                 ? `${f.file_name.substring(0, 30)}...`
                 : f.file_name,

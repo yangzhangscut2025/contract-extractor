@@ -67,17 +67,6 @@ export function classifyByKeywords(text: string): ContractType | null {
 }
 
 /**
- * Get the Chinese label for a contract type.
- */
-export function getContractTypeLabel(type: ContractType): string {
-  switch (type) {
-    case 'EmploymentContract': return '劳动合同'
-    case 'SalaryAdjustment': return '调薪文件'
-    case 'Other': return '其他'
-  }
-}
-
-/**
  * Get the LLM classification prompt.
  */
 export function getClassificationPrompt(text: string): string {

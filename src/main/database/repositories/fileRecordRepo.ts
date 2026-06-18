@@ -1,4 +1,3 @@
-import { Database } from 'sql.js'
 import { getDatabase, saveDatabase } from '../connection'
 
 export interface FileRecordRow {

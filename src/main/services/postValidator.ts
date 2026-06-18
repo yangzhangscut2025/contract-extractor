@@ -101,15 +101,3 @@ export function validateField(fieldName: string, value: string | null): Validati
   return { status: 'ok', message: null }
 }
 
-/**
- * Validate an array of field values.
- */
-export function validateAllFields(
-  fields: { field_name: string; extracted_value: string | null }[]
-): Map<string, ValidationResult> {
-  const results = new Map<string, ValidationResult>()
-  for (const field of fields) {
-    results.set(field.field_name, validateField(field.field_name, field.extracted_value))
-  }
-  return results
-}

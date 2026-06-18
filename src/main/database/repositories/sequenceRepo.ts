@@ -1,4 +1,3 @@
-import { Database } from 'sql.js'
 import { getDatabase, saveDatabase } from '../connection'
 
 export async function getAndIncrementSequence(employeeId: string): Promise<number> {

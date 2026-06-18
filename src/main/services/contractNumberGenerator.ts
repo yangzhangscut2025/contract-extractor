@@ -28,9 +28,3 @@ export async function generateContractNumber(employeeId: string): Promise<string
   }
 }
 
-/**
- * Validate that a contract number follows the expected format.
- */
-export function validateContractNumberFormat(contractNumber: string): boolean {
-  return /^.+_\d{2,}$/.test(contractNumber)
-}

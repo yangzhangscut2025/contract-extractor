@@ -17,8 +17,8 @@ b{color:#1a1a1a}
 <body>
 <h1>产品需求文档：多语言合同智能提取工具</h1>
 <br>
- <b>版本</b> <b>：V1.6</b>
- <b>更新日期</b> <b>：2026-06-15</b>
+ <b>版本</b> <b>：V1.7</b>
+ <b>更新日期</b> <b>：2026-06-17</b>
  <b>产品经理</b> <b>：张阳</b>
  <b>目标用户</b> <b>：数据校验人员、HR运营人员  </b>
 <br>
@@ -37,11 +37,11 @@ b{color:#1a1a1a}
 <ul>
 <li><b>批量导入 PDF 文件</b></li>
 <li><b>自动识别文件类型（劳动合同 / 调薪文件 / 其他）</b></li>
-<li><b>自动提取 42 个关键字段（劳动合同）+ 3 个系统生成字段 = </b><b>45 列</b></li>
+<li><b>自动提取 43 个关键字段（劳动合同）+ 3 个系统生成字段 = </b><b>46 列</b></li>
 <li><b>自动生成合同编号（同一员工按顺序递增）</b></li>
 <li><b>对于文字型 PDF 直接提取文本，对于扫描件/图片型 PDF 调用阿里云 OCR</b></li>
 <li><b>人工校对与修正</b></li>
-<li><b>导出为标准 Excel 模板（45 列）</b></li>
+<li><b>导出为标准 Excel 模板（46 列）</b></li>
 </ul>
 <br>
 <h3>1.3 适用范围</h3>
@@ -133,7 +133,7 @@ b{color:#1a1a1a}
     ↓
 人工校对、修改字段值
     ↓
-导出为 Excel（45 列，空值显示为空白单元格）
+导出为 Excel（46 列，空值显示为空白单元格）
 </pre>
 <br>
 ---
@@ -220,7 +220,7 @@ b{color:#1a1a1a}
 <br>
 <h3>3.6 信息提取（大模型）</h3>
 <br>
-<h4>3.6.1 劳动合同提取字段（42 个）</h4>
+<h4>3.6.1 劳动合同提取字段（43 个）</h4>
 <br>
 <b>详见附录 A。字段定义包含：</b>
 <br>
@@ -294,7 +294,7 @@ b{color:#1a1a1a}
 <br>
 <ul>
 <li><b>格式</b> <b>：Excel (.xlsx)</b></li>
-<li><b>模板</b> <b>：45 列（3 列系统生成 + 42 列大模型提取）。劳动合同和调薪文件统一使用 42 字段 Prompt，LLM 自动提取原文中存在的字段，缺失字段值为 null。</b></li>
+<li><b>模板</b> <b>：46 列（3 列系统生成 + 42 列大模型提取）。劳动合同和调薪文件统一使用 42 字段 Prompt，LLM 自动提取原文中存在的字段，缺失字段值为 null。</b></li>
 <li><b>空值处理</b> <b>：大模型输出 </b><code>&lt;span class="ne-text"&gt;null&lt;/span&gt;</code> 时，导出为 <b>空白单元格</b> <b>（不显示 "null" 字符串）；数字类型字段若为 null，也是空白单元格（不是 0）。</b></li>
 <li><b>导出范围</b> <b>：当前选中的文件或全部已处理文件。</b></li>
 <li><b>文件命名</b> <b>：</b><code>&lt;span class="ne-text"&gt;合同提取结果_年月日时分秒.xlsx&lt;/span&gt;</code></li>
@@ -367,7 +367,7 @@ b{color:#1a1a1a}
 <br>
 <h2>6. 附录</h2>
 <br>
-<h3>附录 A：劳动合同 45 列完整列表（3 系统生成 + 42 大模型提取）</h3>
+<h3>附录 A：劳动合同 46 列完整列表（3 系统生成 + 43 大模型提取）</h3>
 <br>
 <table>
 <tr><td>序号</td><td>中文字段名</td><td>英文字段名</td><td>类型</td><td>输出格式/示例</td><td>来源</td></tr>
@@ -378,47 +378,48 @@ b{color:#1a1a1a}
 <tr><td>5</td><td>法定姓名</td><td>full_name</td><td>string</td><td>John Doe / สมชาย</td><td>大模型</td></tr>
 <tr><td>6</td><td>就职国家/地区</td><td>employment_country</td><td>string</td><td>Thailand</td><td>大模型</td></tr>
 <tr><td>7</td><td>雇主名称</td><td>employer_name</td><td>string</td><td>ABC Company Ltd.</td><td>大模型</td></tr>
-<tr><td>8</td><td>性别</td><td>gender</td><td>string</td><td>男/女</td><td>大模型</td></tr>
+<tr><td>8</td><td>性别</td><td>gender</td><td>string</td><td>男/女/未知</td><td>大模型</td></tr>
 <tr><td>9</td><td>个人邮箱</td><td>personal_email</td><td>string</td><td>user@gmail.com</td><td>大模型</td></tr>
 <tr><td>10</td><td>工作邮箱</td><td>work_email</td><td>string</td><td>user@company.com</td><td>大模型</td></tr>
 <tr><td>11</td><td>入职时间</td><td>start_date</td><td>date</td><td>2024-01-01</td><td>大模型</td></tr>
-<tr><td>12</td><td>合同期限</td><td>contract_duration</td><td>number</td><td>24</td><td>大模型</td></tr>
-<tr><td>13</td><td>合同期限单位</td><td>contract_duration_unit</td><td>string</td><td>月</td><td>大模型</td></tr>
-<tr><td>14</td><td>合同生效日期</td><td>contract_start_date</td><td>date</td><td>2024-01-01</td><td>大模型</td></tr>
-<tr><td>15</td><td>合同结束日期</td><td>contract_end_date</td><td>date</td><td>2026-01-01</td><td>大模型</td></tr>
-<tr><td>16</td><td>试用期时长</td><td>probation_duration</td><td>number</td><td>3</td><td>大模型</td></tr>
-<tr><td>17</td><td>试用期时长单位</td><td>probation_duration_unit</td><td>string</td><td>月</td><td>大模型</td></tr>
-<tr><td>18</td><td>岗位名称</td><td>job_title</td><td>string</td><td>Software Engineer</td><td>大模型</td></tr>
-<tr><td>19</td><td>税前年薪</td><td>annual_gross_salary</td><td>number</td><td>5000000</td><td>大模型</td></tr>
-<tr><td>20</td><td>税前年薪币种</td><td>annual_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
-<tr><td>21</td><td>税前月薪</td><td>monthly_gross_salary</td><td>number</td><td>416666</td><td>大模型</td></tr>
-<tr><td>22</td><td>税前月薪币种</td><td>monthly_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
-<tr><td>23</td><td>税前时薪</td><td>hourly_gross_salary</td><td>number</td><td>500</td><td>大模型</td></tr>
-<tr><td>24</td><td>税前时薪币种</td><td>hourly_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
-<tr><td>25</td><td>交通补贴</td><td>transportation_allowance</td><td>number/null</td><td>1000</td><td>大模型</td></tr>
-<tr><td>26</td><td>餐补</td><td>meal_allowance</td><td>number/null</td><td>500</td><td>大模型</td></tr>
-<tr><td>27</td><td>奖金</td><td>bonus</td><td>string</td><td>13th month salary</td><td>大模型</td></tr>
-<tr><td>28</td><td>其他补贴福利</td><td>other_allowances</td><td>string</td><td>housing allowance</td><td>大模型</td></tr>
-<tr><td>29</td><td>国籍</td><td>nationality</td><td>string</td><td>Thai</td><td>大模型</td></tr>
-<tr><td>30</td><td>生日</td><td>date_of_birth</td><td>date</td><td>1990-05-12</td><td>大模型</td></tr>
-<tr><td>31</td><td>年龄</td><td>age</td><td>number</td><td>34</td><td>大模型</td></tr>
-<tr><td>32</td><td>婚姻状况</td><td>marital_status</td><td>string</td><td>已婚</td><td>大模型</td></tr>
-<tr><td>33</td><td>居住地址</td><td>residential_address</td><td>string</td><td>123 Sukhumvit Rd.</td><td>大模型</td></tr>
-<tr><td>34</td><td>身份证件类型+ID</td><td>identity_document</td><td>string</td><td>Passport: G12345678</td><td>大模型</td></tr>
-<tr><td>35</td><td>电话号码</td><td>phone_number</td><td>string</td><td>+66 81 234 5678</td><td>大模型</td></tr>
-<tr><td>36</td><td>社保号</td><td>social_security_number</td><td>string</td><td>1-2345-67890</td><td>大模型</td></tr>
-<tr><td>37</td><td>出身地</td><td>place_of_birth</td><td>string</td><td>Bangkok, Thailand</td><td>大模型</td></tr>
-<tr><td>38</td><td>年假天数</td><td>annual_leave_days</td><td>string</td><td>15</td><td>大模型</td></tr>
-<tr><td>39</td><td>病假天数</td><td>sick_leave_days</td><td>number</td><td>10</td><td>大模型</td></tr>
-<tr><td>40</td><td>员工开户银行名称</td><td>bank_name</td><td>string</td><td>Bangkok Bank</td><td>大模型</td></tr>
-<tr><td>41</td><td>员工开户银行地址</td><td>bank_address</td><td>string</td><td>999 Silom Road</td><td>大模型</td></tr>
-<tr><td>42</td><td>员工银行账户名</td><td>bank_account_name</td><td>string</td><td>John Doe</td><td>大模型</td></tr>
-<tr><td>43</td><td>员工银行账号</td><td>bank_account_number</td><td>string</td><td>123-4-56789-0</td><td>大模型</td></tr>
-<tr><td>44</td><td>员工国际银行账户号码</td><td>iban</td><td>string/null</td><td>TH1234567890</td><td>大模型</td></tr>
-<tr><td>45</td><td>员工银行 SWIFT 代码</td><td>swift_code</td><td>string/null</td><td>BKKBTHBK</td><td>大模型</td></tr>
+<tr><td>12</td><td>合同期限类型</td><td>contract_term_type</td><td>string</td><td>有固定期限 / 无固定期限</td><td>大模型</td></tr>
+<tr><td>13</td><td>合同期限</td><td>contract_duration</td><td>number</td><td>24</td><td>大模型</td></tr>
+<tr><td>14</td><td>合同期限单位</td><td>contract_duration_unit</td><td>string</td><td>月</td><td>大模型</td></tr>
+<tr><td>15</td><td>合同生效日期</td><td>contract_start_date</td><td>date</td><td>2024-01-01</td><td>大模型</td></tr>
+<tr><td>16</td><td>合同结束日期</td><td>contract_end_date</td><td>date</td><td>2026-01-01</td><td>大模型</td></tr>
+<tr><td>17</td><td>试用期时长</td><td>probation_duration</td><td>number</td><td>3</td><td>大模型</td></tr>
+<tr><td>18</td><td>试用期时长单位</td><td>probation_duration_unit</td><td>string</td><td>月</td><td>大模型</td></tr>
+<tr><td>19</td><td>岗位名称</td><td>job_title</td><td>string</td><td>Software Engineer</td><td>大模型</td></tr>
+<tr><td>20</td><td>税前年薪</td><td>annual_gross_salary</td><td>number</td><td>5000000</td><td>大模型</td></tr>
+<tr><td>21</td><td>税前年薪币种</td><td>annual_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
+<tr><td>22</td><td>税前月薪</td><td>monthly_gross_salary</td><td>number</td><td>416666</td><td>大模型</td></tr>
+<tr><td>23</td><td>税前月薪币种</td><td>monthly_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
+<tr><td>24</td><td>税前时薪</td><td>hourly_gross_salary</td><td>number</td><td>500</td><td>大模型</td></tr>
+<tr><td>25</td><td>税前时薪币种</td><td>hourly_gross_currency</td><td>string</td><td>THB</td><td>大模型</td></tr>
+<tr><td>26</td><td>交通补贴</td><td>transportation_allowance</td><td>number/null</td><td>1000</td><td>大模型</td></tr>
+<tr><td>27</td><td>餐补</td><td>meal_allowance</td><td>number/null</td><td>500</td><td>大模型</td></tr>
+<tr><td>28</td><td>奖金</td><td>bonus</td><td>string</td><td>13th month salary</td><td>大模型</td></tr>
+<tr><td>29</td><td>其他补贴福利</td><td>other_allowances</td><td>string</td><td>housing allowance</td><td>大模型</td></tr>
+<tr><td>30</td><td>国籍</td><td>nationality</td><td>string</td><td>Thai</td><td>大模型</td></tr>
+<tr><td>31</td><td>生日</td><td>date_of_birth</td><td>date</td><td>1990-05-12</td><td>大模型</td></tr>
+<tr><td>32</td><td>年龄</td><td>age</td><td>number</td><td>34</td><td>大模型</td></tr>
+<tr><td>33</td><td>婚姻状况</td><td>marital_status</td><td>string</td><td>已婚</td><td>大模型</td></tr>
+<tr><td>34</td><td>居住地址</td><td>residential_address</td><td>string</td><td>123 Sukhumvit Rd.</td><td>大模型</td></tr>
+<tr><td>35</td><td>身份证件类型+ID</td><td>identity_document</td><td>string</td><td>Passport: G12345678</td><td>大模型</td></tr>
+<tr><td>36</td><td>电话号码</td><td>phone_number</td><td>string</td><td>+66 81 234 5678</td><td>大模型</td></tr>
+<tr><td>37</td><td>社保号</td><td>social_security_number</td><td>string</td><td>1-2345-67890</td><td>大模型</td></tr>
+<tr><td>38</td><td>出身地</td><td>place_of_birth</td><td>string</td><td>Bangkok, Thailand</td><td>大模型</td></tr>
+<tr><td>39</td><td>年假天数</td><td>annual_leave_days</td><td>string</td><td>15</td><td>大模型</td></tr>
+<tr><td>40</td><td>病假天数</td><td>sick_leave_days</td><td>number</td><td>10</td><td>大模型</td></tr>
+<tr><td>41</td><td>员工开户银行名称</td><td>bank_name</td><td>string</td><td>Bangkok Bank</td><td>大模型</td></tr>
+<tr><td>42</td><td>员工开户银行地址</td><td>bank_address</td><td>string</td><td>999 Silom Road</td><td>大模型</td></tr>
+<tr><td>43</td><td>员工银行账户名</td><td>bank_account_name</td><td>string</td><td>John Doe</td><td>大模型</td></tr>
+<tr><td>44</td><td>员工银行账号</td><td>bank_account_number</td><td>string</td><td>123-4-56789-0</td><td>大模型</td></tr>
+<tr><td>45</td><td>员工国际银行账户号码</td><td>iban</td><td>string/null</td><td>TH1234567890</td><td>大模型</td></tr>
+<tr><td>46</td><td>员工银行 SWIFT 代码</td><td>swift_code</td><td>string/null</td><td>BKKBTHBK</td><td>大模型</td></tr>
 </table>
 <br>
-<h3>附录 B：劳动合同提取 Prompt 模板（42 个字段）</h3>
+<h3>附录 B：劳动合同提取 Prompt 模板（43 个字段）</h3>
 <br>
 <pre>
 你是一位专业的HR合同信息提取专家。请从以下OCR识别的合同文本中，严格按照要求提取字段。
@@ -438,6 +439,7 @@ b{color:#1a1a1a}
   "personal_email": "",                 // 个人邮箱（小写）
   "work_email": "",                     // 工作邮箱（小写）
   "start_date": "",                     // 入职时间，格式 YYYY-MM-DD。优先找"Start Date"/"Commencement Date"/"Date of Employment"/"入职日期"，若无则默认为合同生效日期
+  "contract_term_type": "",             // 合同期限类型：有固定期限 / 无固定期限
   "contract_duration": "",              // 合同期限数字部分（不含单位）
   "contract_duration_unit": "",         // 合同期限单位：年/月/日/周
   "contract_start_date": "",            // 合同生效日期，格式 YYYY-MM-DD。优先找"Effective Date"/"Contract Effective Date"/"本合同生效日期"，若无则默认为签署日期(Signature Date)
@@ -556,7 +558,7 @@ b{color:#1a1a1a}
 <tr><td>合同生效日期补漏</td><td>若主提取未命中 `contract_start_date`，自动追加针对性 LLM 追问（补提生效日期）</td></tr>
 <tr><td>加密 PDF 密码弹窗</td><td>检测到加密 PDF 时弹出密码输入 Modal，支持用户输入密码解密</td></tr>
 <tr><td>原件审查按钮</td><td>文件列表新增"原件"按钮，用系统 PDF 阅读器打开原始合同</td></tr>
-<tr><td>字段增至 45 列</td><td>新增 `hourly_gross_salary`（税前时薪）、`hourly_gross_currency`（税前时薪币种）</td></tr>
+<tr><td>字段增至 46 列</td><td>新增 `hourly_gross_salary`（税前时薪）、`hourly_gross_currency`（税前时薪币种）</td></tr>
 <tr><td>统一 Prompt</td><td>劳动合同与调薪文件共用 42 字段 Prompt（删除调薪专用 Prompt）</td></tr>
 <tr><td>阿里云 OCR</td><td>对接 `RecognizeMultiLanguage` API，支持扫描件 PDF 识别</td></tr>
 </table>
@@ -593,6 +595,22 @@ b{color:#1a1a1a}
 <tr><td>校对面板布局优化</td><td>文件名超长自动截断、按钮改为图标无文字模式，确保多按钮不挤压</td></tr>
 </table>
 <br>
+<h3>V1.7（2026-06-17）</h3>
+<br>
+<table>
+<tr><td>功能</td><td>说明</td></tr>
+<tr><td>OCR 全面调用</td><td>OCR 配置后所有 PDF 直接走 OCR，不再判断文字层质量；OCR 失败回退 pdfjs，标记 `ocr_failed` 橙色状态</td></tr>
+<tr><td>分类不再跳过</td><td>无法识别类型的文件默认按劳动合同处理，不再标记"已跳过"</td></tr>
+<tr><td>Excel 导出增强</td><td>新增"导出失败"按钮、文件名称列、合同编号推算、错误信息列</td></tr>
+<tr><td>清理重复文件</td><td>文件管理新增"清理重复"按钮，按 MD5 去重，保留提取字段最多的记录</td></tr>
+<tr><td>文件列表排序</td><td>改为按员工编号升序排列，与员工序号表 CSV 对应</td></tr>
+<tr><td>合同期限类型</td><td>新增 `contract_term_type` 字段（有固定期限/无固定期限），总计 46 列</td></tr>
+<tr><td>性别支持未知</td><td>性别字段新增"未知"选项，无法判断时填入</td></tr>
+<tr><td>LLM 原生 fetch</td><td>移除 `openai` SDK，改用 Node.js 原生 `fetch()` 调 DeepSeek/智谱 API</td></tr>
+<tr><td>canvas 桥接</td><td>pdfjs-dist → @napi-rs/canvas 桥接，PDF 逐页转 PNG 送 OCR</td></tr>
+<tr><td>代码清理</td><td>移除 11 处冗余代码（未使用函数/import）</td></tr>
+</table>
+<br>
 ---
 <br>
  <b>文档状态</b> <b>：已定稿，可进入开发。</b>
@@ -600,7 +618,7 @@ b{color:#1a1a1a}
 <div style="page-break-before:always"></div>
 <h1>合同智能提取工具 — 使用说明</h1>
 <br>
-<b>版本：V1.6  |  更新日期：2026-06-15</b>
+<b>版本：V1.7  |  更新日期：2026-06-17</b>
 <br>
 ---
 <br>

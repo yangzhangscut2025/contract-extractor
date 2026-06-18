@@ -212,8 +212,8 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
   if (!record) return
 
   try {
-    // Update status to processing
-    await updateFileRecord(fileId, { status: 'processing' })
+    // Update status to processing, clear old translation cache
+    await updateFileRecord(fileId, { status: 'processing', translated_text: null })
     sendProgress(mainWindow, 'process:progress', {
       fileId,
       fileName: record.file_name,

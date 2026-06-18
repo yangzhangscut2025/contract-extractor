@@ -99,10 +99,7 @@ export function registerFileHandlers(): void {
     if (!record) {
       throw new Error('文件记录不存在')
     }
-    const result = await shell.openPath(record.file_path)
-    if (result) {
-      throw new Error(`无法打开文件: ${result}`)
-    }
+    shell.showItemInFolder(record.file_path)
   })
 
   // Get file path for PDF viewing
