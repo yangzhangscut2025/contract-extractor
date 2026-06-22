@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Table, Button, Tag, Space, Popconfirm, message, Select } from 'antd'
+import { Table, Button, Tag, Space, Popconfirm, message, Select, Input } from 'antd'
 import { DeleteOutlined, EyeOutlined, FilePdfOutlined, ClearOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useAppStore } from '../../store/appStore'
@@ -25,8 +25,11 @@ export function FileList(): JSX.Element {
   const loadFileForReview = useAppStore((s) => s.loadFileForReview)
   const [verifyFilter, setVerifyFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [empSearch, setEmpSearch] = useState('')
 
   const filteredFiles = files.filter(f => {
+    // Employee ID search
+    if (empSearch.trim() && f.employee_id && !f.employee_id.toLowerCase().includes(empSearch.trim().toLowerCase())) return false
     // Verification filter
     if (verifyFilter === 'verified' && !f.is_verified) return false
     if (verifyFilter === 'unverified' && (f.is_verified || (f.status !== 'completed' && f.status !== 'ocr_failed' && f.status !== 'failed'))) return false
@@ -201,6 +204,15 @@ export function FileList(): JSX.Element {
             : `共 ${files.length} 个文件`}
         </span>
         <Space>
+          <Input.Search
+            size="small"
+            placeholder="员工编号搜索"
+            value={empSearch}
+            onChange={(e) => setEmpSearch(e.target.value)}
+            onSearch={(v) => setEmpSearch(v)}
+            allowClear
+            style={{ width: 180 }}
+          />
           <Select
             size="small"
             value={verifyFilter}
