@@ -258,8 +258,13 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
             throw new Error('PDF 密码错误或无法解密，请检查密码后重试')
           }
         } else {
-          // If OCR configured, use it directly (skip pdfjs text extraction)
-          if (isOcrConfigured()) {
+          // Step 1: try pdfjs text extraction first (free, works for most PDFs)
+          const pages = await extractTextPerPage(record.file_path)
+          originalText = combinePageTexts(pages)
+
+          // Step 2: if text quality is poor and OCR is configured, try OCR
+          const wordCount = (originalText.match(/[a-zA-Z一-鿿]{2,}/g) || []).length
+          if (wordCount < 20 && isOcrConfigured()) {
             sendProgress(mainWindow, 'process:progress', {
               fileId, fileName: record.file_name,
               step: 'OCR 识别', percent: 30
@@ -269,27 +274,17 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
               ocrUsed = true
             } catch (ocrErr) {
               logger.error(`OCR failed: ${String(ocrErr)}`)
-              // Fallback to pdfjs text extraction
-              const pages = await extractTextPerPage(record.file_path)
-              originalText = combinePageTexts(pages)
-              if (!originalText.trim()) {
-                throw new Error(`OCR 识别失败且 PDF 无文字层: ${String(ocrErr)}`)
-              }
-              // Mark OCR failure — use fallback text, flag status
               ocrFailed = true
               ocrErrorMessage = String(ocrErr).substring(0, 200)
               await updateFileRecord(fileId, {
-                ocr_used: 0,
                 error_message: `[OCR失败，使用PDF文字层] ${ocrErrorMessage}`
               })
+              // Keep pdfjs text as-is, don't throw
             }
-          } else {
-            // No OCR — use pdfjs text extraction
-            const pages = await extractTextPerPage(record.file_path)
-            originalText = combinePageTexts(pages)
-            if (!originalText.trim()) {
-              throw new Error('PDF 为扫描件且 OCR 未配置。请在设置页面配置阿里云 OCR。')
-            }
+          }
+
+          if (!originalText.trim()) {
+            throw new Error('PDF 文字层为空。若为扫描件，请配置 OCR。')
           }
         }
       } catch (err: unknown) {

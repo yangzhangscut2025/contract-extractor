@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { findResultsByFileId, updateExtractionResult, insertExtractionResult } from '../database/repositories/extractionResultRepo'
 import { findFileRecordById, updateFileRecord } from '../database/repositories/fileRecordRepo'
-import * as fieldsConfig from '../../../config/fields.json'
+import fieldsConfig from '../../../config/fields.json'
 
 export function registerReviewHandlers(): void {
   ipcMain.handle('review:get-fields', async (_event, { fileId }: { fileId: number }) => {
@@ -9,7 +9,8 @@ export function registerReviewHandlers(): void {
 
     // Auto-create empty fields if file has no extraction results yet
     if (results.length === 0) {
-      const fields = fieldsConfig as Array<{ english_name: string }>
+      const fields = (fieldsConfig as Array<{ english_name: string; source: string }>)
+        .filter(f => f.source !== 'system')
       for (const field of fields) {
         const r = await insertExtractionResult({
           file_record_id: fileId,
@@ -23,10 +24,14 @@ export function registerReviewHandlers(): void {
       }
     }
 
-    return results.map((r) => ({
-      ...r,
-      effectiveValue: r.manual_value ?? r.extracted_value
-    }))
+    // Filter out system-generated fields (employee_id, contract_number, contract_type)
+    const systemFields = new Set(['employee_id', 'contract_number', 'contract_type'])
+    return results
+      .filter(r => !systemFields.has(r.field_name))
+      .map((r) => ({
+        ...r,
+        effectiveValue: r.manual_value ?? r.extracted_value
+      }))
   })
 
   ipcMain.handle('review:update-field', async (_event, { id, manualValue }: { id: number; manualValue: string }) => {

@@ -9,13 +9,24 @@ export function DropZone(): JSX.Element {
   const addFilesByPaths = useAppStore((s) => s.addFilesByPaths)
   const loadFiles = useAppStore((s) => s.loadFiles)
 
+  const doImport = async (paths: string[]) => {
+    if (paths.length === 0) return
+    const before = useAppStore.getState().files.length
+    await addFilesByPaths(paths)
+    const after = useAppStore.getState().files.length
+    const added = after - before
+    if (added > 0) {
+      const dupes = paths.length - added
+      message.success(`导入 ${added} 个文件${dupes > 0 ? `，${dupes} 个重复已跳过` : ''}`)
+    } else {
+      message.info('文件已存在，未新增')
+    }
+  }
+
   const handleImport = async (): Promise<void> => {
     try {
       const paths = await window.electronAPI.fileImport()
-      if (paths.length > 0) {
-        await addFilesByPaths(paths)
-        message.success(`成功导入 ${paths.length} 个文件`)
-      }
+      await doImport(paths)
     } catch (err) {
       message.error('文件导入失败: ' + String(err))
     }
@@ -26,19 +37,12 @@ export function DropZone(): JSX.Element {
     multiple: true,
     accept: '.pdf',
     showUploadList: false,
-    beforeUpload: (file) => {
-      // Return false to prevent default upload; we handle via Electron API
-      return false
-    },
+    beforeUpload: () => false,
     onChange: async (info) => {
-      const files = info.fileList
+      const paths = info.fileList
         .filter((f) => f.name.toLowerCase().endsWith('.pdf'))
         .map((f) => (f.originFileObj as File)?.path || f.name)
-
-      if (files.length > 0) {
-        await addFilesByPaths(files)
-        message.success(`成功导入 ${files.length} 个文件`)
-      }
+      await doImport(paths)
     }
   }
 

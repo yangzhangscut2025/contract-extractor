@@ -38,8 +38,8 @@ export async function recognizePdfWithOcr(pdfPath: string): Promise<string> {
     throw new Error('OCR 服务未配置。请在设置页面配置阿里云 OCR AccessKey。')
   }
 
-  const akId = config.ocrAccessKeyId
-  const akSecret = config.ocrAccessKeySecret
+  const akId = (config.ocrAccessKeyId || '').replace(/[^\x20-\x7E]/g, '').trim()
+  const akSecret = (config.ocrAccessKeySecret || '').replace(/[^\x20-\x7E]/g, '').trim()
 
   const data = new Uint8Array(fs.readFileSync(pdfPath))
   const doc = await pdfjsLib.getDocument({ data, useWorkerFetch: false, CanvasFactory: canvasFactory }).promise
@@ -105,24 +105,39 @@ async function callOcrApi(imageBuffer: Buffer, akId: string, akSecret: string): 
   const signature = crypto.createHmac('sha1', `${akSecret}&`).update(stringToSign).digest('base64')
 
   const url = `https://ocr-api.cn-hangzhou.aliyuncs.com/?${queryString}&Signature=${encodeURIComponent(signature)}`
+  const urlObj = new URL(url)
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
-    body: imageBuffer.buffer.slice(imageBuffer.byteOffset, imageBuffer.byteOffset + imageBuffer.byteLength)
+  const resp = await new Promise<{ statusCode: number; data: string }>((resolve, reject) => {
+    const http = require('https')
+    const req = http.request({
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': imageBuffer.length
+      }
+    }, (res: any) => {
+      let data = ''
+      res.on('data', (c: string) => data += c)
+      res.on('end', () => resolve({ statusCode: res.statusCode, data }))
+    })
+    req.on('error', reject)
+    req.write(imageBuffer)
+    req.end()
   })
 
-  if (!resp.ok) {
-    const errText = await resp.text().catch(() => '')
-    throw new Error(`HTTP ${resp.status}: ${errText.substring(0, 200)}`)
+  if (resp.statusCode !== 200) {
+    throw new Error(`HTTP ${resp.statusCode}: ${resp.data.substring(0, 200)}`)
   }
 
-  const data = await resp.json() as { Code?: string; Message?: string; Data?: string }
+  const data = JSON.parse(resp.data) as { Code?: string; Message?: string; Data?: string }
+
   if (data.Code && data.Code !== '200' && data.Code !== '0') {
     throw new Error(data.Message || `API error: ${data.Code}`)
   }
 
-  return extractText(data)
+  return extractText(data as Record<string, unknown>)
 }
 
 function extractText(data: Record<string, unknown>): string {
@@ -143,7 +158,13 @@ export async function testOcrConnection(): Promise<{ success: boolean; message: 
     return { success: false, message: '请先配置阿里云 OCR AccessKey 和 Secret' }
   }
   try {
-    const testPng = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82])
+    // Generate valid test image (API requires min 15x15)
+    const c = createCanvas(100, 100)
+    const ctx = c.getContext('2d')
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 100, 100)
+    ctx.fillStyle = '#000'; ctx.font = '14px sans-serif'
+    ctx.fillText('Test', 10, 50)
+    const testPng = c.toBuffer('image/png')
     await callOcrApi(testPng, config.ocrAccessKeyId, config.ocrAccessKeySecret)
     return { success: true, message: '阿里云 OCR 连接成功（区域: cn-hangzhou）' }
   } catch (err: unknown) {

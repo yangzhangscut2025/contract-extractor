@@ -1,4 +1,5 @@
-import { Table, Button, Tag, Space, Popconfirm, message } from 'antd'
+import { useState } from 'react'
+import { Table, Button, Tag, Space, Popconfirm, message, Select } from 'antd'
 import { DeleteOutlined, EyeOutlined, FilePdfOutlined, ClearOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useAppStore } from '../../store/appStore'
@@ -22,6 +23,19 @@ export function FileList(): JSX.Element {
   const removeFile = useAppStore((s) => s.removeFile)
   const setActiveView = useAppStore((s) => s.setActiveView)
   const loadFileForReview = useAppStore((s) => s.loadFileForReview)
+  const [verifyFilter, setVerifyFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  const filteredFiles = files.filter(f => {
+    // Verification filter
+    if (verifyFilter === 'verified' && !f.is_verified) return false
+    if (verifyFilter === 'unverified' && (f.is_verified || (f.status !== 'completed' && f.status !== 'ocr_failed' && f.status !== 'failed'))) return false
+    // Status filter
+    if (statusFilter === 'pending' && f.status !== 'pending') return false
+    if (statusFilter === 'processed' && f.status === 'pending') return false
+    if (statusFilter === 'failed' && f.status !== 'failed' && f.status !== 'ocr_failed') return false
+    return true
+  })
 
   const handleReview = async (record: FileRecord): Promise<void> => {
     await loadFileForReview(record.id)
@@ -139,7 +153,6 @@ export function FileList(): JSX.Element {
             size="small"
             icon={<EyeOutlined />}
             onClick={() => handleReview(record)}
-            disabled={record.status !== 'completed'}
           >
             校对
           </Button>
@@ -169,7 +182,10 @@ export function FileList(): JSX.Element {
     },
     onSelectAll: (selected: boolean) => {
       if (selected) {
-        selectAllFiles()
+        // Select only currently filtered files
+        filteredFiles.forEach(f => {
+          if (!selectedFileIds.includes(f.id)) toggleSelectFile(f.id)
+        })
       } else {
         clearSelection()
       }
@@ -184,14 +200,39 @@ export function FileList(): JSX.Element {
             ? `已选择 ${selectedFileIds.length} 个文件`
             : `共 ${files.length} 个文件`}
         </span>
-        <Button size="small" icon={<ClearOutlined />} onClick={handleCleanupDuplicates} title="清理重复文件（保留提取字段最多的）">
-          清理重复
-        </Button>
+        <Space>
+          <Select
+            size="small"
+            value={verifyFilter}
+            onChange={setVerifyFilter}
+            style={{ width: 100 }}
+            options={[
+              { label: '全部', value: 'all' },
+              { label: '已校验', value: 'verified' },
+              { label: '未校验', value: 'unverified' }
+            ]}
+          />
+          <Select
+            size="small"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            style={{ width: 100 }}
+            options={[
+              { label: '全部', value: 'all' },
+              { label: '待处理', value: 'pending' },
+              { label: '已处理', value: 'processed' },
+              { label: '失败', value: 'failed' }
+            ]}
+          />
+          <Button size="small" icon={<ClearOutlined />} onClick={handleCleanupDuplicates} title="清理重复文件">
+            清理重复
+          </Button>
+        </Space>
       </div>
       <Table
         rowKey="id"
         columns={columns}
-        dataSource={files}
+        dataSource={filteredFiles}
         rowSelection={rowSelection}
         pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
         size="middle"

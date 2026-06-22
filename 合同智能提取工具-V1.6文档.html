@@ -362,29 +362,30 @@ b{color:#1a1a1a}
 <div style="page-break-before:always"></div>
 <h1>合同智能提取工具 — 使用说明</h1>
 <br>
-<b>版本</b>：V1.7 | <b>日期</b>：2026-06-18
+<b>版本</b>：V1.7 | <b>日期</b>：2026-06-19
 <br>
 ---
 <br>
 <h2>一、简介</h2>
 <br>
-本工具用于批量处理 PDF 合同文件，自动提取 46 个字段（姓名、薪酬、银行账户等），支持人工校对、翻译辅助，最终导出为 Excel。
+批量处理 PDF 合同文件，自动提取 43 个字段（姓名、薪酬、银行账户等），支持人工校对、翻译辅助，导出 Excel。
 <br>
-适用文件：劳动合同、调薪文件（PDF 格式，文字型/扫描件均可）。
+适用：劳动合同、调薪文件（PDF 格式，文字型/扫描件均可）。
 <br>
 ---
 <br>
 <h2>二、安装与启动</h2>
 <br>
-<b>环境要求</b>：Windows 10 / 11
-<br>
-<b>启动</b>：解压后双击 <code>启动.bat</code>。
+<ul>
+<li>Windows 10 / 11</li>
+<li>解压后双击 <code>启动.bat</code></li>
+</ul>
 <br>
 ---
 <br>
 <h2>三、首次配置</h2>
 <br>
-点击左侧菜单 <b>设置</b>。
+左侧菜单 <b>设置</b>。
 <br>
 <h3>3.1 大模型（必填）</h3>
 <br>
@@ -392,167 +393,165 @@ b{color:#1a1a1a}
 <tr><td>配置项</td><td>说明</td></tr>
 <tr><td>服务商</td><td>DeepSeek 或智谱 AI</td></tr>
 <tr><td>模型名称</td><td>默认 `deepseek-chat`</td></tr>
-<tr><td>API Key</td><td>服务商提供的密钥</td></tr>
+<tr><td>API Key</td><td>服务商密钥</td></tr>
 </table>
 <br>
-<b>获取 API Key</b>：
-<ul>
-<li>DeepSeek：https://platform.deepseek.com → API Keys</li>
-<li>智谱 AI：https://open.bigmodel.cn → API Keys</li>
-</ul>
+填写后点击 <b>测试连接</b>。
 <br>
-填写后点击 <b>测试连接</b>，确认通过。
+&gt; DeepSeek：https://platform.deepseek.com → API Keys
+&gt; 智谱 AI：https://open.bigmodel.cn → API Keys
 <br>
 <h3>3.2 OCR（可选）</h3>
 <br>
-仅扫描件 PDF 需要。不配也能处理文字型 PDF。
+仅扫描件需要，文字型 PDF 不受影响。
 <br>
 <table>
 <tr><td>配置项</td><td>说明</td></tr>
 <tr><td>AccessKey ID</td><td>阿里云 RAM 用户 AccessKey</td></tr>
-<tr><td>AccessKey Secret</td><td>对应的 Secret</td></tr>
-<tr><td>区域</td><td>默认 `cn-hangzhou`</td></tr>
+<tr><td>AccessKey Secret</td><td>对应 Secret</td></tr>
 </table>
 <br>
 ---
 <br>
-<h2>四、文件导入</h2>
+<h2>四、文件管理</h2>
 <br>
-点击 <b>文件管理</b>。
+点击 <b>文件管理</b>，拖拽或点击导入 PDF。重复文件自动识别跳过，提示准确数量。
 <br>
-<ul>
-<li><b>拖拽导入</b>：将 PDF 拖入虚线框</li>
-<li><b>点击导入</b>：点击虚线框下方链接选择文件</li>
-<li>重复文件自动识别并跳过</li>
-</ul>
+<h3>4.1 筛选</h3>
 <br>
-文件列表各列说明：
+两个下拉框可组合使用：
+<br>
+<table>
+<tr><td>筛选</td><td>选项</td></tr>
+<tr><td>校验状态</td><td>全部 / 已校验 / 未校验</td></tr>
+<tr><td>处理状态</td><td>全部 / 待处理 / 已处理 / 失败</td></tr>
+</table>
+<br>
+全选勾选框只勾选当前筛选结果。
+<br>
+<h3>4.2 列表列</h3>
 <br>
 <table>
 <tr><td>列</td><td>说明</td></tr>
 <tr><td>序号</td><td>与员工序号表 CSV 对应</td></tr>
 <tr><td>文件名</td><td>悬停显示完整路径</td></tr>
-<tr><td>员工编号</td><td>自动从文件名解析</td></tr>
-<tr><td>合同编号</td><td>处理时自动生成</td></tr>
-<tr><td>状态</td><td>见下方</td></tr>
+<tr><td>员工编号</td><td>从文件名自动解析</td></tr>
+<tr><td>合同编号</td><td>处理时生成</td></tr>
+<tr><td>状态</td><td>待处理/处理中/已完成/OCR失败/失败</td></tr>
+<tr><td>已验证</td><td>是否已人工校对</td></tr>
 <tr><td>错误信息</td><td>失败原因</td></tr>
-<tr><td>原件</td><td>打开所在文件夹</td></tr>
 </table>
 <br>
-<b>状态说明</b>：
+<h3>4.3 按钮</h3>
 <br>
 <table>
-<tr><td>状态</td><td>颜色</td><td>含义</td></tr>
-<tr><td>待处理</td><td>灰</td><td>已导入，未提取</td></tr>
-<tr><td>处理中</td><td>蓝</td><td>正在提取</td></tr>
-<tr><td>已完成</td><td>绿</td><td>提取完成</td></tr>
-<tr><td>OCR失败</td><td>橙</td><td>OCR 失败，使用 PDF 文字层</td></tr>
-<tr><td>失败</td><td>红</td><td>处理出错</td></tr>
-<tr><td>已跳过</td><td>橙</td><td>无法识别（极少出现）</td></tr>
+<tr><td>按钮</td><td>说明</td></tr>
+<tr><td>原件</td><td>打开所在文件夹并定位文件</td></tr>
+<tr><td>校对</td><td>进入校对审核页（所有状态可用）</td></tr>
+<tr><td>删除</td><td>删除记录及提取结果</td></tr>
+<tr><td>开始处理</td><td>处理选中文件，未选则处理全部待处理</td></tr>
+<tr><td>取消处理</td><td>中断处理</td></tr>
+<tr><td>清理重复</td><td>MD5 去重，保留字段最多的</td></tr>
 </table>
 <br>
 ---
 <br>
-<h2>五、批量处理</h2>
+<h2>五、处理流程</h2>
 <br>
-1. 勾选文件（或点 <b>开始处理</b> 自动处理所有待处理文件）
-2. 顶部显示进度
-3. 每次最多 3 个文件并发，失败自动重试 1 次
+<pre>
+pdfjs 提取文字
+  ├─ 文字足够 → 直接用（免费）
+  ├─ 文字不足 + OCR 已配 → 调 OCR
+  └─ 文字为空 + OCR 未配 → 失败
+→ 文件分类 → 合同编号 → LLM 提取 43 字段 → 校验
+</pre>
 <br>
-加密 PDF 会自动弹窗要求输入密码。
+OCR 只在 pdfjs 提取文字不足时才触发，大部分 PDF 不花钱。
 <br>
 ---
 <br>
 <h2>六、校对审核</h2>
 <br>
-点击 <b>校对审核</b>，或文件列表中点 <b>校对</b>。
+点击 <b>校对审核</b> 或文件列表点 <b>校对</b>。
 <br>
 <h3>6.1 界面</h3>
 <br>
 <table>
 <tr><td>区域</td><td>内容</td></tr>
-<tr><td>左侧</td><td>PDF 原版（上下滑动翻页），支持翻译切换</td></tr>
-<tr><td>右侧</td><td>字段表格</td></tr>
+<tr><td>左侧</td><td>PDF 原版（上下滑动），支持翻译切换</td></tr>
+<tr><td>右侧</td><td>43 个字段表格</td></tr>
 </table>
 <br>
-<h3>6.2 字段表格</h3>
+<h3>6.2 按钮</h3>
+<br>
+<table>
+<tr><td>按钮</td><td>说明</td></tr>
+<tr><td>重提</td><td>重新提取，手动修正值不丢失</td></tr>
+<tr><td>翻译</td><td>LLM 译为中文，日期/金额/人名保留原文，缓存不重复调用</td></tr>
+<tr><td>PDF 原版 / 中文翻译</td><td>切换左侧视图</td></tr>
+<tr><td>标记为已验证</td><td>确认校对完成</td></tr>
+</table>
+<br>
+<h3>6.3 字段表格</h3>
 <br>
 <table>
 <tr><td>列</td><td>说明</td></tr>
-<tr><td>字段名</td><td>点击可高亮定位</td></tr>
-<tr><td>提取值</td><td>LLM 自动提取</td></tr>
-<tr><td>修正值</td><td>点击可直接编辑</td></tr>
+<tr><td>字段名</td><td>点击高亮定位</td></tr>
+<tr><td>提取值</td><td>LLM 结果</td></tr>
+<tr><td>修正值</td><td>点击编辑</td></tr>
 <tr><td>校验</td><td>绿勾=通过，黄叹=可疑</td></tr>
 </table>
 <br>
-<h3>6.3 字段高亮</h3>
+<h3>6.4 字段高亮</h3>
 <br>
-点击字段名 → 左侧 PDF 自动黄色高亮匹配文字，支持日期/金额/电话多格式智能搜索。
-<br>
-<h3>6.4 翻译</h3>
-<br>
-点击 <b>翻译</b> 按钮，LLM 将原文译为中文。日期、金额、人名、邮箱等关键信息保留原文。翻译结果缓存，同文件不重复调用。
-<br>
-点击顶部 <b>PDF 原版 / 中文翻译</b> 切换视图。
-<br>
-<h3>6.5 重提与标记</h3>
-<br>
-<ul>
-<li><b>重提</b>：重新提取，手动修正值不丢失</li>
-<li><b>标记已验证</b>：确认校对完成</li>
-</ul>
+点击字段名 → 左侧 PDF 黄色高亮匹配文字，支持日期/金额/电话多格式智能搜索。
 <br>
 ---
 <br>
 <h2>七、导出</h2>
 <br>
-点击 <b>导出</b>，三个按钮：
-<br>
 <table>
 <tr><td>按钮</td><td>说明</td></tr>
 <tr><td>导出选中</td><td>勾选的文件</td></tr>
-<tr><td>导出全部已处理</td><td>已完成 + 失败 + OCR失败</td></tr>
-<tr><td>导出失败</td><td>仅失败 + OCR失败</td></tr>
+<tr><td>导出全部已处理</td><td>已完成 + 失败 + OCR 失败</td></tr>
+<tr><td>导出失败 (N)</td><td>仅失败 + OCR 失败</td></tr>
 </table>
 <br>
-Excel 包含 46 列，校验异常的单元格以黄色标注。失败文件的员工编号和合同编号自动填入。
+Excel 包含 48 列（文件名称 + 员工编号 + 合同编号 + 合同类别 + 43 字段 + 错误信息）。校验异常黄色标注，失败文件自动填入员工编号和合同编号。
 <br>
 ---
 <br>
 <h2>八、常见问题</h2>
 <br>
-<b>Q1：字段为空？</b>
-原文中确实没有该信息则留空，可在校对页手动补充。
+<b>Q：字段为空？</b>
+原文中确实没有则留空，可手动补充。
 <br>
-<b>Q2：扫描件处理失败？</b>
-配置阿里云 OCR 或确认文件是否为文字型 PDF。
+<b>Q：扫描件失败？</b>
+检查 OCR 配置，或确认是否为文字型 PDF。
 <br>
-<b>Q3：调薪文件很多字段为空？</b>
-调薪文件通常只含薪酬变更，其他信息原文不存在，属正常。
+<b>Q：调薪文件字段少？</b>
+调薪文件通常只含薪酬变更，正常。
 <br>
-<b>Q4：PDF 加密？</b>
-处理时弹窗输入密码。
+<b>Q：翻译是旧数据？</b>
+点重提清缓存后重新翻译。
 <br>
-<b>Q5：API Key 在哪获取？</b>
-见第三章链接。
+<b>Q：OCR 失败状态橙色？</b>
+OCR 失败但 pdfjs 提取到了文字，不影响使用。
 <br>
-<b>Q6：OCR 失败但字段正常？</b>
-文件是文字型 PDF，OCR 未使用但 pdfjs 成功提取了文字，标绿色正常。
+<b>Q：文件重复？</b>
+点清理重复按钮。
 <br>
-<b>Q7：翻译是旧数据？</b>
-点"重提"后再点"翻译"即可更新。
-<br>
-<b>Q8：文件重复？</b>
-点文件管理页的 <b>清理重复</b> 按钮。
+<b>Q：API Key 测试失败？</b>
+重新粘贴确保无多余空格/换行。
 <br>
 ---
 <br>
 <h2>九、生产建议</h2>
 <br>
 <ul>
-<li>5 个一组处理，不要一次拖太多</li>
+<li>5 个一组处理</li>
 <li>处理完导出 Excel 备份</li>
-<li>校对过的文件重提不丢数据</li>
+<li>校对过的重提不丢数据</li>
 <li>定期检查 DeepSeek 余额</li>
 </ul>
 <br>

@@ -131,12 +131,12 @@ export function registerFileHandlers(): void {
 - 只输出翻译结果，不要加解释
 
 原文：
-${record.original_text.substring(0, 12000)}`
+${record.original_text.substring(0, 30000)}`
 
     const text = await callLlmRaw(prompt)
 
     // Cache in DB
-    await updateFileRecord(id, { translated_text: text.substring(0, 50000) })
+    await updateFileRecord(id, { translated_text: text.substring(0, 100000) })
 
     return text
   })
