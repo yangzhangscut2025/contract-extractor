@@ -25,7 +25,7 @@ const EXTRACTION_PROMPT = `你是一位专业的HR合同信息提取专家。请
 
 注意：合同编号、合同类别、员工系统编号不需要提取，已由系统自动生成。
 
-待提取字段列表（共43个字段）：
+待提取字段列表（共44个字段）：
 
 {
   "is_signed_both": "",
@@ -36,6 +36,7 @@ const EXTRACTION_PROMPT = `你是一位专业的HR合同信息提取专家。请
   "personal_email": "",
   "work_email": "",
   "start_date": "",
+  "contract_category": "",
   "contract_term_type": "",
   "contract_duration": "",
   "contract_duration_unit": "",
@@ -74,7 +75,8 @@ const EXTRACTION_PROMPT = `你是一位专业的HR合同信息提取专家。请
 }
 
 提取规则：
-- contract_term_type：判断合同期限类型。若合同中明确写明"permanent"/"indefinite"/"无固定期限"/"不限"，或明确表示合同无终止日期，则值为"无固定期限"；否则值为"有固定期限"。不得为null。
+- contract_category：合同类型，必须为以下之一：全职劳动合同 / 顾问协议 / 竞业协议 / 隐私协议 / 授权协议 / 实习协议 / Offer / 其他
+- contract_term_type：期限类型，若合同明确为永久/无固定期限则填"无固定期限"，否则填"固定期限"
 - gender：男性/女性/未知。若原文中能明确判断性别（如 Mr./Mrs./Male/Female/男/女），提取对应值"男"或"女"。若无法判断（如名字性别不明、无称呼前缀、无性别代词），填"未知"。不得返回null或空字符串。
 - 日期统一转换为 YYYY-MM-DD 格式。
 - **contract_start_date（重要）**：

@@ -29,6 +29,8 @@ const electronAPI = {
     ipcRenderer.invoke('review:mark-verified', { fileId }),
   reviewSearchInText: (fileId: number, query: string): Promise<number[]> =>
     ipcRenderer.invoke('review:search-text', { fileId, query }),
+  reviewGetTableData: (): Promise<unknown[][]> =>
+    ipcRenderer.invoke('review:get-table-data'),
 
   // Export
   exportExcel: (fileIds: number[]): Promise<string> =>

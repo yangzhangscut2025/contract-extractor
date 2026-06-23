@@ -4,7 +4,8 @@ import {
   FileTextOutlined,
   CheckCircleOutlined,
   ExportOutlined,
-  SettingOutlined
+  SettingOutlined,
+  TableOutlined
 } from '@ant-design/icons'
 import { useAppStore } from '../../store/appStore'
 import { DropZone } from '../FileInput/DropZone'
@@ -14,6 +15,7 @@ import { ProgressPanel } from '../Processing/ProgressPanel'
 import { ReviewPanel } from '../Review/ReviewPanel'
 import { ExportButton } from '../Export/ExportButton'
 import { ConfigPanel } from '../Config/ConfigPanel'
+import { TableView } from '../Review/TableView'
 
 const { Sider, Content, Header } = Layout
 const { Title } = Typography
@@ -21,6 +23,7 @@ const { Title } = Typography
 const menuItems = [
   { key: 'files', icon: <FileTextOutlined />, label: '文件管理' },
   { key: 'review', icon: <CheckCircleOutlined />, label: '校对审核' },
+  { key: 'table', icon: <TableOutlined />, label: '表格校验' },
   { key: 'export', icon: <ExportOutlined />, label: '导出' },
   { key: 'config', icon: <SettingOutlined />, label: '设置' }
 ]
@@ -151,7 +154,7 @@ export function AppLayout(): JSX.Element {
           }}
         >
           <Title level={5} style={{ margin: 0 }}>
-            {menuItems.find((m) => m.key === activeView)?.label}
+            {menuItems.find((m) => m.key === activeView)?.label || '表格校验'}
           </Title>
           {activeView === 'files' && <ProcessButton />}
         </Header>
@@ -170,6 +173,7 @@ export function AppLayout(): JSX.Element {
             </div>
           )}
           {activeView === 'review' && <ReviewPanel />}
+          {activeView === 'table' && <TableView />}
           {activeView === 'export' && (
             <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
               <Title level={4}>导出 Excel</Title>

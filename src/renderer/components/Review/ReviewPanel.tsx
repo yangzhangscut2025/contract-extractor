@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Select, Button, Input, Empty, message } from 'antd'
-import { SearchOutlined, ReloadOutlined, TranslationOutlined } from '@ant-design/icons'
+import { SearchOutlined, ReloadOutlined, TranslationOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { useAppStore } from '../../store/appStore'
 import { FieldTable } from './FieldTable'
 import { PdfViewer } from './PdfViewer'
@@ -97,6 +97,12 @@ export function ReviewPanel(): JSX.Element {
     }
   }, [currentFileId])
 
+  // Prev/next file navigation
+  const reviewIdx = reviewableFiles.findIndex(f => f.id === currentFileId)
+  const goToFile = useCallback((fid: number) => {
+    handleFileSelect(fid)
+  }, [handleFileSelect])
+
   return (
     <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 150px)' }}>
       {/* Left panel: PDF viewer */}
@@ -143,6 +149,20 @@ export function ReviewPanel(): JSX.Element {
             title="翻译为中文"
             style={{ flexShrink: 0 }}
             size="small"
+          />
+          <Button
+            icon={<LeftOutlined />}
+            size="small"
+            disabled={reviewIdx <= 0}
+            title="上一个文件"
+            onClick={() => goToFile(reviewableFiles[reviewIdx - 1].id)}
+          />
+          <Button
+            icon={<RightOutlined />}
+            size="small"
+            disabled={reviewIdx < 0 || reviewIdx >= reviewableFiles.length - 1}
+            title="下一个文件"
+            onClick={() => goToFile(reviewableFiles[reviewIdx + 1].id)}
           />
         </div>
         {/* View toggle: PDF / Translation */}

@@ -34,7 +34,7 @@ interface AppState {
   saveConfig: (key: string, value: unknown) => Promise<void>
 
   // Navigation
-  activeView: 'files' | 'review' | 'export' | 'config'
+  activeView: 'files' | 'review' | 'export' | 'config' | 'table'
   setActiveView: (view: 'files' | 'review' | 'export' | 'config') => void
 }
 

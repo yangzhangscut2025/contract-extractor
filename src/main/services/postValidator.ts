@@ -82,9 +82,15 @@ export function validateField(fieldName: string, value: string | null): Validati
   }
 
   // Contract term type
+  if (fieldName === 'contract_category') {
+    const valid = ['全职劳动合同','顾问协议','竞业协议','隐私协议','授权协议','实习协议','Offer','其他']
+    if (!valid.includes(strValue)) return { status: 'warning', message: '不在合同类型列表中' }
+    return { status: 'ok', message: null }
+  }
+
   if (fieldName === 'contract_term_type') {
-    if (strValue !== '有固定期限' && strValue !== '无固定期限') {
-      return { status: 'warning', message: '期望值：有固定期限 或 无固定期限' }
+    if (strValue !== '固定期限' && strValue !== '无固定期限') {
+      return { status: 'warning', message: '期望：固定期限 / 无固定期限' }
     }
     return { status: 'ok', message: null }
   }

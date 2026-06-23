@@ -1,6 +1,6 @@
 {
   "name": "contract-extractor",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "合同智能提取工具 - 批量导入PDF合同，自动提取45个字段，支持人工校对、翻译辅助与Excel导出",
   "main": "./out/main/index.js",
   "scripts": {

@@ -26,3 +26,6 @@ html, body, #root {
 ::-webkit-scrollbar-track {
   background-color: transparent;
 }
+
+.table-row-alt-1 td { background-color: #f0f5ff !important; }
+.table-row-alt-2 td { background-color: #f6ffed !important; }

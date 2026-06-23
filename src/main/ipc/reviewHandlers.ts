@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { findResultsByFileId, updateExtractionResult, insertExtractionResult } from '../database/repositories/extractionResultRepo'
 import { findFileRecordById, updateFileRecord } from '../database/repositories/fileRecordRepo'
+import { getDatabase } from '../database/connection'
 import fieldsConfig from '../../../config/fields.json'
 
 export function registerReviewHandlers(): void {
@@ -40,6 +41,20 @@ export function registerReviewHandlers(): void {
 
   ipcMain.handle('review:mark-verified', async (_event, { fileId }: { fileId: number }) => {
     await updateFileRecord(fileId, { is_verified: 1 })
+  })
+
+  // Get all extraction data in one shot for table view
+  ipcMain.handle('review:get-table-data', async () => {
+    const db = await getDatabase()
+    const rows = db.exec(
+      `SELECT f.id as fid, f.file_name, f.employee_id, f.contract_number, f.contract_type,
+              f.status, f.is_verified, f.error_message,
+              e.id as eid, e.field_name, e.extracted_value, e.manual_value, e.validation_status, e.validation_message
+       FROM file_records f
+       LEFT JOIN extraction_results e ON e.file_record_id = f.id
+       ORDER BY f.employee_id ASC, f.created_at ASC`
+    )
+    return rows.length > 0 ? rows[0].values : []
   })
 
   ipcMain.handle('review:search-text', async (_event, { fileId, query }: { fileId: number; query: string }) => {
