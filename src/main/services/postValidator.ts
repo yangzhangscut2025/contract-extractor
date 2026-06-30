@@ -7,7 +7,7 @@ export interface ValidationResult {
 const EMAIL_REGEX = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/
 
 // Date formats to try parsing
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
+const DATE_REGEX = /^\d{4}[-\/]\d{2}[-\/]\d{2}$/
 
 // Phone regex: after stripping formatting chars, must have >= 8 digits
 const PHONE_DIGIT_THRESHOLD = 8

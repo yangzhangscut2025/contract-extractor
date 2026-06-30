@@ -78,7 +78,7 @@ const EXTRACTION_PROMPT = `你是一位专业的HR合同信息提取专家。请
 - contract_category：合同类型，必须为以下之一：全职劳动合同 / 顾问协议 / 竞业协议 / 隐私协议 / 授权协议 / 实习协议 / Offer / 其他
 - contract_term_type：期限类型，若合同明确为永久/无固定期限则填"无固定期限"，否则填"固定期限"
 - gender：男性/女性/未知。若原文中能明确判断性别（如 Mr./Mrs./Male/Female/男/女），提取对应值"男"或"女"。若无法判断（如名字性别不明、无称呼前缀、无性别代词），填"未知"。不得返回null或空字符串。
-- 日期统一转换为 YYYY-MM-DD 格式。
+- 日期统一转换为 YYYY/MM/DD 格式。
 - **contract_start_date（重要）**：
   * 这是合同的生效/执行日期，是提取的关键字段。
   * 优先查找："Effective Date"、"Commencement Date"、"Start Date"、"Contract Date"、"生效日期"、"合同生效日期"、"开始日期"、"执行日期"。
@@ -401,7 +401,7 @@ async function processOneFile(fileId: number, mainWindow: BrowserWindow, retry =
           percent: 78
         })
         try {
-          const datePrompt = `从以下文档中提取"合同生效日期"或"调薪生效日期"。只输出一个日期字符串（YYYY-MM-DD格式），不要JSON，不要其他文字。若确实没有任何日期，输出"NONE"。
+          const datePrompt = `从以下文档中提取"合同生效日期"或"调薪生效日期"。只输出一个日期字符串（YYYY/MM/DD格式），不要JSON，不要其他文字。若确实没有任何日期，输出"NONE"。
 
 常见日期出现位置：文档开头、签名附近、薪酬信息附近。
 常见标签：Effective Date, Commencement Date, Start Date, 生效日期, Salary Adjustment Date, Effective from, 执行日期。
@@ -413,7 +413,7 @@ ${originalText.substring(0, 4000)}
 
           const dateResult = await callLlm(datePrompt)
           const trimmed = String(dateResult).trim()
-          if (trimmed && trimmed !== 'NONE' && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+          if (trimmed && trimmed !== 'NONE' && /^\d{4}[-\/]\d{2}[-\/]\d{2}$/.test(trimmed)) {
             extractedFields['contract_start_date'] = trimmed
             logger.info(`Gap fill: contract_start_date = ${trimmed}`)
           }

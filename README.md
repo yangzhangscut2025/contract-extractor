@@ -1,8 +1,8 @@
 # 合同智能提取工具
 
-批量导入 PDF 合同 → 自动提取 46 个字段 → 人工校对 + 翻译辅助 → Excel 导出
+批量导入 PDF 合同 → 自动提取 47 个字段 → 人工校对 + 翻译辅助 → Excel 导出
 
-**V1.7** | Electron + React + TypeScript | Windows
+**V1.8** | Electron + React + TypeScript | Windows
 
 ---
 
@@ -12,7 +12,7 @@
 - 关键词 + LLM 智能分类（劳动合同/调薪文件）
 - PDF 文字提取 + 阿里云 OCR 扫描件识别（可选）
 - 合同编号自动生成（员工编号_序号递增）
-- LLM 提取 43 个字段（DeepSeek / 智谱 AI）
+- LLM 提取 44 个字段（DeepSeek / 智谱 AI）
 - 格式校验（邮箱/日期/电话/金额/年龄/性别/期限类型）
 - PDF 原版校对（Canvas 渲染 + 字段点击高亮 + 智能搜索）
 - 翻译辅助（LLM 译中文，关键信息保留原文）

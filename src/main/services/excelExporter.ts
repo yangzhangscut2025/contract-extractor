@@ -18,6 +18,7 @@ const COLUMNS = [
   { header: '个人邮箱', key: 'personal_email' },
   { header: '工作邮箱', key: 'work_email' },
   { header: '入职时间', key: 'start_date' },
+  { header: '合同编号', key: 'contract_number_2' },
   { header: '合同类型', key: 'contract_category' },
   { header: '期限类型', key: 'contract_term_type' },
   { header: '合同期限', key: 'contract_duration' },
@@ -119,6 +120,15 @@ export async function exportToExcel(fileIds: number[], outputPath: string): Prom
       rowData['contract_number'] = `${record.employee_id}_${nextSeq}`
     } else {
       rowData['contract_number'] = null
+    }
+    rowData['contract_number_2'] = rowData['contract_number']
+    // Convert date fields to YYYY/MM/DD
+    const dateFields = ['start_date', 'contract_start_date', 'contract_end_date', 'date_of_birth', 'effective_date']
+    for (const df of dateFields) {
+      const v = fieldMap.get(df)
+      if (v && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        fieldMap.set(df, v.replace(/-/g, '/'))
+      }
     }
     rowData['contract_type'] = record.contract_type === 'EmploymentContract' ? '劳动合同'
       : record.contract_type === 'SalaryAdjustment' ? '调薪文件'
